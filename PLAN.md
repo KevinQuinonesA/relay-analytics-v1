@@ -119,6 +119,8 @@ The Site C and Site B values are real seed answers. Everything else in the sketc
 
 TDD for every layer: write a failing test, make it pass, then refactor. Tests are committed before the code they cover, so the history shows it. **Expected values come from hand-worked synthetic cases or from an independent calculation, never from running the implementation.**
 
+**Where the effort goes:** correctness lives in the rules (1) and the aggregation (2, 4), so that's where most of the tests go. Schema, API and frontend tests stay thin and only check wiring.
+
 **1. Rule unit tests** (pure Python, synthetic, one or more per rule):
 - Median of an even-length baseline; the middle-6 range (with ties as well).
 - Inside the range, at the boundary, below, above.
@@ -172,9 +174,9 @@ Each phase is test-first and ends with a commit. If time runs short, phase 5 is 
 1. **Skeleton:** repo layout; compose `db`; Alembic schema and index migrations; idempotent seed command.
 2. **Rules:** constants module and the pure rule module (median, range, statuses, distance, ranking), with unit tests on synthetic data.
 3. **Data:** the queries that remove duplicates, bucket by local week, fill zero weeks and apply the history start, with SQL tests on synthetic rows, then the seed known-answer tests.
-4. **Endpoint**, with API tests. Then a **minimal UI**: account picker, as-of picker, URL state, the ranked location list with statuses and ranges. Wire `backend` and `frontend` into compose so `docker compose up --build` runs everything.
+4. **Endpoint**, with API tests. Then a **minimal UI**: account picker, as-of picker, URL state, the ranked location list with statuses and ranges. Wire `backend` and `frontend` into compose so `docker compose up --build` runs everything. The backend listens on `BACKEND_PORT` (default 8000).
 5. **Refinement, cut first:** per-type context per location, account totals, frontend tests.
-6. **README:** how to run and test, a decision summary pointing to this plan, and next steps (missed-call rate first).
+6. **README:** the ticket quoted (`docs/` stays out of the repo), how to run and test, a decision summary pointing to this plan, and next steps (missed-call rate first).
 
 ## 9. Out of scope
 
@@ -188,3 +190,13 @@ Each phase is test-first and ends with a commit. If time runs short, phase 5 is 
 
 ## 10. Where would an LLM fit?
 
+**Not in v1.**
+- **The answer is already one deterministic line**, e.g. "Site B: 2 events this week, typical 4–12". The feature only works if admins trust that line. An LLM adds cost, latency and the risk of a wrong number, for little gain.
+- **It can't explain why a site dropped.** We only store counts: no call notes, no staffing data, no marketing calendar. Any "because…" it wrote would be a guess presented as an insight.
+
+**Later, if the need shows up:**
+- **A Monday digest for large multi-location accounts**: a short paragraph on top of the list.
+  - It's built only from the computed weekly summary, never from raw data.
+  - Every number in the generated text is checked against the summary; if any doesn't match, the deterministic template is shown instead.
+  - It's generated once per account per week and cached, so cost and latency don't touch page loads.
+- **Classifying call reasons**, if Relay ever stores call notes or transcripts. That would give a real "why" behind a drop. Today there's no such data.
