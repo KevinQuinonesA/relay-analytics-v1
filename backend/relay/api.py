@@ -1,8 +1,9 @@
 """HTTP layer: validation and serialization only; the logic is in relay.summary."""
 from datetime import date
 from functools import lru_cache
+from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 
@@ -11,6 +12,9 @@ from relay.db import database_url
 from relay.normality import Status
 
 app = FastAPI(title="Relay weekly normality")
+
+# Outside this range an as_of is a typo, and near year 1 the week arithmetic overflows.
+AsOf = Annotated[date | None, Query(ge=date(2000, 1, 1), le=date(2100, 12, 31))]
 
 
 @lru_cache
@@ -99,7 +103,7 @@ def list_accounts(conn=Depends(get_conn)):
 
 
 @app.get("/api/accounts/{account_id}/weekly-summary", response_model=WeeklySummaryOut)
-def weekly_summary(account_id: int, as_of: date | None = None, conn=Depends(get_conn)):
+def weekly_summary(account_id: int, as_of: AsOf = None, conn=Depends(get_conn)):
     s = summary.weekly_summary(conn, account_id, as_of)
     if s is None:
         raise HTTPException(status_code=404, detail="Account not found")
