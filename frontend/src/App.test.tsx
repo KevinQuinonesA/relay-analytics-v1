@@ -131,6 +131,13 @@ describe("weekly summary", () => {
     expect(slightly?.textContent).not.toMatch(/[▲▼]/);
   });
 
+  it("labels the columns above the location rows", async () => {
+    openAt("?account=15");
+    await locationRows();
+    const headers = screen.getByTestId("location-columns");
+    expect(Array.from(headers.children, (c) => c.textContent)).toEqual(["Status", "Location", "Last 9 weeks", "This week"]);
+  });
+
   it("gives slightly-outside rows a lighter outline arrow and typical rows none", async () => {
     mockApi({
       "/api/accounts": { status: 200, body: ACCOUNTS },
