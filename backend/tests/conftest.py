@@ -1,6 +1,6 @@
 import itertools
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -85,6 +85,7 @@ class Rows:
         )
 
     def event(self, account_id, location, utc, event_type="call_received", outcome=None, duration=None, n=1):
+        """Insert `n` distinct events, one second apart (identical rows would be exact duplicates)."""
         occurred_at = datetime.fromisoformat(utc) if isinstance(utc, str) else utc
         self.conn.execute(
             text(
@@ -95,10 +96,10 @@ class Rows:
             [
                 {
                     "id": next(self.ids), "account_id": account_id, "location": location,
-                    "event_type": event_type, "occurred_at": occurred_at,
+                    "event_type": event_type, "occurred_at": occurred_at + timedelta(seconds=i),
                     "duration": duration, "outcome": outcome,
                 }
-                for _ in range(n)
+                for i in range(n)
             ],
         )
 

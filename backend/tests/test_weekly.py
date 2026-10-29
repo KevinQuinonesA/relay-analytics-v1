@@ -80,8 +80,9 @@ def test_utc_account_week_boundary(conn, rows):
 # --- duplicates -----------------------------------------------------------------------
 
 def test_exact_duplicates_count_once_including_null_columns(conn, rows):
-    rows.event(NY, "Site A", "2026-07-21 15:00:00", n=2)  # NULL duration and outcome
-    rows.event(NY, "Site A", "2026-07-22 15:00:00", outcome="connected", duration=300, n=2)
+    for _ in range(2):
+        rows.event(NY, "Site A", "2026-07-21 15:00:00")  # NULL duration and outcome
+        rows.event(NY, "Site A", "2026-07-22 15:00:00", outcome="connected", duration=300)
     assert target_counts(conn, NY, date(2026, 7, 20)) == {"Site A": 2}
 
 
