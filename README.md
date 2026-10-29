@@ -52,6 +52,12 @@ Work in progress; see the implementation order in PLAN.md section 8.
 
 - **Default as-of uses the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally. The seed isn't affected: its last event is Monday 2026-07-27 22:20 UTC. In production the default should be today's date.
 
+## To revisit with product
+
+- **Account totals are never flagged, even well outside their range.** Example: Pacific Smiles (account 5), week of Jul 13 (as-of 2026-07-20), appointments 9 vs typical 4–6. This is by design for v1, since totals are context only. Whether the account level should get its own marker is a product call.
+- **`MIN_FLAG_DISTANCE` (0.3) sits close to cases a person would call worrying.** Example: account 6 Site N, week of Apr 13 (as-of 2026-04-20), 1 event vs typical 3–8. The distance is 2/7 ≈ 0.29, so it shows only as "slightly below". Examples like this are what to tune the threshold with.
+- **Above and below typical share the same highlight on purpose.** Whether more activity is good depends on the business (more calls can mean demand or a problem), so the UI stays neutral until product decides.
+
 ## Next steps
 
 - Missed-call rate per account, with a minimum number of calls (PLAN.md section 9).
