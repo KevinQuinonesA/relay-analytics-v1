@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from fractions import Fraction
 
 from relay.normality import Assessment, Thresholds, assess, rank
-from relay.weekly import account_row, account_rows, default_as_of, location_weeks, target_week
+from relay.weekly import account_row, account_rows, account_weeks, default_as_of, location_weeks, target_week
 
 
 EVENT_TYPES = ("call_received", "lead_created", "appointment_set")
@@ -69,28 +69,20 @@ def weekly_summary(conn, account_id, as_of=None, limits=Thresholds()):
         baseline_start=week - timedelta(weeks=limits.baseline_weeks),
         baseline_end=week - timedelta(days=1),
         thresholds=limits,
-        account_totals=_account_totals(weeks, week, limits),
+        account_totals=_account_totals(conn, account_id, week, limits),
         locations=[by_location[a.location] for a in rank(l.assessment for l in by_location.values())],
     )
 
 
-def _account_totals(weeks, week, limits):
-    """Sums of the location numbers per event type. The account's baseline starts at its
-    earliest location history; each location counts from its own history start, which
-    location_weeks already applies (weeks before it are absent)."""
-    baseline_weeks = [week - timedelta(weeks=n) for n in range(limits.baseline_weeks, 0, -1)]
-    if weeks:
-        start = min(lw.history_start for lw in weeks)
-        baseline_weeks = [w for w in baseline_weeks if w >= start]
-    else:
-        baseline_weeks = []
+def _account_totals(conn, account_id, week, limits):
+    """Per event type: the account's count this week, with median and typical range over its
+    baseline (context only, never flagged). Built from account_weeks, so every event of the
+    account counts, including a new location's partial first week."""
+    aw = account_weeks(conn, account_id, week, limits.baseline_weeks)
+    *baseline, current = aw.weeks if aw else [None]
     totals = {}
     for et in EVENT_TYPES:
-        per_week = {w: 0 for w in baseline_weeks + [week]}
-        for lw in weeks:
-            for wc in lw.weeks:
-                per_week[wc.week_start] += getattr(wc, et)
-        current = per_week.pop(week)
-        a = assess(et, current, [per_week[w] for w in baseline_weeks], limits)
-        totals[et] = TypeTotals(current, a.median, a.typical_low, a.typical_high)
+        count = getattr(current, et) if current else 0
+        a = assess(et, count, [getattr(w, et) for w in baseline], limits)
+        totals[et] = TypeTotals(count, a.median, a.typical_low, a.typical_high)
     return totals

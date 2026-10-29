@@ -102,8 +102,62 @@ def location_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WE
     return list(result.values())
 
 
+ACCOUNT_WEEKS_SQL = text(
+    """
+    WITH events AS (
+        SELECT e.event_type,
+               ((e.occurred_at AT TIME ZONE 'UTC') AT TIME ZONE a.timezone)::date AS local_day
+        FROM activity_events_dedup e
+        JOIN accounts a ON a.id = e.account_id
+        WHERE e.account_id = :account_id
+    ),
+    account AS (
+        SELECT date_trunc('week', min(local_day)::timestamp)::date
+                 + CASE WHEN extract(isodow FROM min(local_day)) = 1 THEN 0 ELSE 7 END AS history_start
+        FROM events
+        HAVING min(local_day) <= :target_end
+    ),
+    weeks AS (
+        SELECT generate_series(CAST(:window_start AS timestamp), CAST(:target_week AS timestamp),
+                               interval '1 week')::date AS week_start
+    ),
+    counts AS (
+        SELECT date_trunc('week', local_day::timestamp)::date AS week_start,
+               count(*) FILTER (WHERE event_type = 'call_received') AS call_received,
+               count(*) FILTER (WHERE event_type = 'lead_created') AS lead_created,
+               count(*) FILTER (WHERE event_type = 'appointment_set') AS appointment_set,
+               count(*) AS total
+        FROM events
+        WHERE local_day BETWEEN :window_start AND :target_end
+        GROUP BY 1
+    )
+    SELECT a.history_start, w.week_start,
+           coalesce(c.call_received, 0), coalesce(c.lead_created, 0),
+           coalesce(c.appointment_set, 0), coalesce(c.total, 0)
+    FROM account a
+    CROSS JOIN weeks w
+    LEFT JOIN counts c ON c.week_start = w.week_start
+    WHERE w.week_start >= a.history_start OR w.week_start = :target_week
+    ORDER BY w.week_start
+    """
+)
+
+
 def account_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WEEKS):
-    raise NotImplementedError
+    """The whole account's counts for `week` and the `baseline_weeks` before it, or None if it
+    has no events up to the end of `week`. Every event counts in its week, including a new
+    location's partial first week; history starts on the first Monday on or after the
+    account's first event."""
+    params = {
+        "account_id": account_id,
+        "target_week": week,
+        "target_end": week + timedelta(days=6),
+        "window_start": week - timedelta(weeks=baseline_weeks),
+    }
+    rows = conn.execute(ACCOUNT_WEEKS_SQL, params).all()
+    if not rows:
+        return None
+    return AccountWeeks(rows[0][0], [WeekCounts(week_start, *counts) for _, week_start, *counts in rows])
 
 
 def account_row(conn, account_id):
