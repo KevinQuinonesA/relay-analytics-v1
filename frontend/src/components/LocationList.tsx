@@ -1,6 +1,6 @@
 import type { LocationWeek, Status, WeeklySummary } from "../api";
 import { plural } from "../format";
-import { eventTypeCounts } from "./AccountTotals";
+import { eventTypeCounts } from "../eventTypes";
 import { Sparkline } from "./Sparkline";
 
 const STATUS_LABEL: Record<Status, string> = {

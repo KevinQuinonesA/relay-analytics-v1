@@ -244,6 +244,15 @@ button:disabled {
   pointer-events: none;
 }
 
+.spark-tooltip-total,
+.spark-tooltip-types {
+  display: block;
+}
+
+.spark-tooltip-total {
+  font-weight: 600;
+}
+
 @media (max-width: 34rem) {
   .location {
     grid-template-columns: 1fr auto;

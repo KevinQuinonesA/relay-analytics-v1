@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { WeekPoint } from "../api";
+import { eventTypeCounts } from "../eventTypes";
 import { formatWeek, plural } from "../format";
 
 interface Props {
@@ -72,7 +73,12 @@ export function Sparkline({ label, weeks, typicalLow, typicalHigh, size = "row" 
       </svg>
       {hoveredWeek && hoveredWeek.count !== null && (
         <span role="tooltip" className="spark-tooltip" style={{ left: x(hovered ?? 0) }}>
-          {`${formatWeek(hoveredWeek.start, hoveredWeek.end)}: ${plural(hoveredWeek.count, "event")}`}
+          <span className="spark-tooltip-total">
+            {`${formatWeek(hoveredWeek.start, hoveredWeek.end)}: ${plural(hoveredWeek.count, "event")}`}
+          </span>
+          {hoveredWeek.by_event_type && (
+            <span className="spark-tooltip-types">{eventTypeCounts(hoveredWeek.by_event_type, "title")}</span>
+          )}
         </span>
       )}
     </span>

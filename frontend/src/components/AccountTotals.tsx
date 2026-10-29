@@ -1,13 +1,7 @@
-import type { EventType, WeeklySummary } from "../api";
+import type { WeeklySummary } from "../api";
+import { EVENT_TYPE_LABEL, EVENT_TYPE_ORDER as ORDER } from "../eventTypes";
 import { Sparkline } from "./Sparkline";
 
-export const EVENT_TYPE_LABEL: Record<EventType, { title: string; short: string }> = {
-  call_received: { title: "Calls", short: "calls" },
-  lead_created: { title: "Leads", short: "leads" },
-  appointment_set: { title: "Appointments", short: "appointments" },
-};
-
-const ORDER: EventType[] = ["call_received", "lead_created", "appointment_set"];
 
 // Context only: the account's totals are never flagged.
 export function AccountTotals({ summary }: { summary: WeeklySummary }) {
@@ -28,8 +22,4 @@ export function AccountTotals({ summary }: { summary: WeeklySummary }) {
       </ul>
     </>
   );
-}
-
-export function eventTypeCounts(counts: Record<EventType, number>): string {
-  return ORDER.map((type) => `${EVENT_TYPE_LABEL[type].short} ${counts[type]}`).join(" · ");
 }
