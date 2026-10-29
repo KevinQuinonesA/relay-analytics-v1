@@ -7,7 +7,7 @@ Each location's last complete week, compared with its own previous 8 weeks, so a
 **You need:** Docker with Compose v2 (`docker compose version`), git, and `make`. Without `make`, run the command shown next to each target in the `Makefile`. Ports 5432, 8000 and 5173 must be free, or set `DB_PORT`, `BACKEND_PORT` and `FRONTEND_PORT`.
 
 ```bash
-git clone <this repo> && cd <repo folder>
+git clone https://github.com/KevinQuinonesA/relay-analytics-v1.git && cd relay-analytics-v1
 docker compose up --build
 ```
 
