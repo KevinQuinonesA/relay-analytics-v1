@@ -22,3 +22,5 @@ packages = ["relay"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests run in a container on a bind mount; no cache dir means no root-owned files on the host
+addopts = "-p no:cacheprovider"

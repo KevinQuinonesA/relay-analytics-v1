@@ -11,7 +11,7 @@ git clone <this repo> && cd <repo folder>
 docker compose up --build
 ```
 
-The first build takes a few minutes. Once the logs show `Uvicorn running`, open **<http://localhost:5173>** and pick an account. On first start the backend creates the schema with migrations and loads `data/seed.sql` once; later starts skip the seed.
+The first build takes a few minutes. When the frontend logs `Configuration complete; ready for start up` (a few seconds after the backend's `Uvicorn running`), open **<http://localhost:5173>** and pick an account. On first start the backend creates the schema with migrations and loads `data/seed.sql` once; later starts skip the seed.
 
 The account and as-of date live in the URL (`/?account=6&as_of=2026-04-20`), so reloading or sharing a link keeps them. Stop with `Ctrl+C`, or `docker compose down` (add `-v` to delete the database too).
 

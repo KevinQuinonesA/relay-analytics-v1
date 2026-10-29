@@ -49,11 +49,7 @@ services:
     profiles: ["test"]
     build:
       context: ./frontend
-      target: deps
-    command: npm test
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      target: test
 
 volumes:
   db-data:

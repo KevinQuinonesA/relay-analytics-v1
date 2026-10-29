@@ -3,6 +3,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
+# Tests run from a copy of the sources (no bind mount, so nothing root-owned lands on the host)
+FROM deps AS test
+COPY . .
+CMD ["npm", "test"]
+
 FROM deps AS build
 COPY . .
 RUN npm run build
