@@ -183,7 +183,7 @@ def test_site_g_outage_by_event_type(seeded_conn):
 # --- sparkline series (analysis/reference.py: location_series, account_total) ---------------
 
 def series(summary, location):
-    return [(str(w), c) for w, c in next(l for l in summary.locations if l.assessment.location == location).weeks]
+    return [(str(p.week_start), p.count) for p in next(l for l in summary.locations if l.assessment.location == location).weeks]
 
 
 def test_site_g_outage_series(seeded_conn):
@@ -208,4 +208,40 @@ def test_account_15_site_c_series(seeded_conn):
 )
 def test_account_total(seeded_conn, account, as_of, expected):
     t = weekly_summary(seeded_conn, account, as_of=as_of).account_total
-    assert (t.count, t.median, t.typical_low, t.typical_high, [c for _, c in t.weeks]) == expected
+    assert (t.count, t.median, t.typical_low, t.typical_high, [p.count for p in t.weeks]) == expected
+
+
+# --- per-type breakdown of each week (analysis/reference.py: location_type_series, account_type_series) ---
+
+def type_series(points):
+    return [None if p.by_event_type is None else
+            (p.by_event_type["call_received"], p.by_event_type["lead_created"], p.by_event_type["appointment_set"])
+            for p in points]
+
+
+def test_site_g_per_type_series(seeded_conn):
+    site_g = next(l for l in weekly_summary(seeded_conn, 6, as_of=date(2026, 4, 20)).locations
+                  if l.assessment.location == "Site G")
+    assert type_series(site_g.weeks) == [
+        (3, 2, 1), (3, 2, 2), (1, 1, 0), (3, 0, 0), (3, 1, 1), (4, 2, 1), (7, 1, 0), (2, 0, 0), (0, 0, 0),
+    ]
+
+
+def test_account_6_total_per_type_series(seeded_conn):
+    s = weekly_summary(seeded_conn, 6, as_of=date(2026, 4, 20))
+    assert type_series(s.account_total.weeks) == [
+        (54, 23, 13), (29, 14, 13), (48, 17, 11), (51, 16, 17), (57, 14, 10), (45, 15, 11), (52, 19, 11),
+        (43, 18, 15), (33, 16, 6),
+    ]
+
+
+@pytest.mark.parametrize("as_of", [date(2026, 7, 27), date(2026, 4, 20), date(2026, 3, 2)])
+def test_per_type_counts_always_add_up_to_the_week_total(seeded_conn, as_of):
+    for account in ACCOUNTS:
+        s = weekly_summary(seeded_conn, account, as_of=as_of)
+        for points in [l.weeks for l in s.locations] + [s.account_total.weeks]:
+            for p in points:
+                if p.count is None:
+                    assert p.by_event_type is None
+                else:
+                    assert sum(p.by_event_type.values()) == p.count, (account, p)

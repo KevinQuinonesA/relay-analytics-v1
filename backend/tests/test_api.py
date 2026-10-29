@@ -91,8 +91,10 @@ def test_weekly_series_for_sparklines(client):
     body = client.get("/api/accounts/15/weekly-summary").json()
     site_c = body["locations"][0]
     assert len(site_c["weeks"]) == 9
-    assert site_c["weeks"][0] == {"start": "2026-05-25", "end": "2026-05-31", "count": 4}
-    assert site_c["weeks"][-1] == {"start": "2026-07-20", "end": "2026-07-26", "count": 12}
+    assert site_c["weeks"][0] == {"start": "2026-05-25", "end": "2026-05-31", "count": 4,
+                                  "by_event_type": {"call_received": 3, "lead_created": 0, "appointment_set": 1}}
+    assert site_c["weeks"][-1] == {"start": "2026-07-20", "end": "2026-07-26", "count": 12,
+                                   "by_event_type": {"call_received": 6, "lead_created": 4, "appointment_set": 2}}
     total = body["account_total"]
     assert (total["count"], total["median"], total["typical_low"], total["typical_high"]) == (20, 19, 15, 24)
     assert [w["count"] for w in total["weeks"]] == [15, 33, 23, 14, 24, 16, 19, 19, 20]
@@ -101,4 +103,5 @@ def test_weekly_series_for_sparklines(client):
 def test_weeks_before_history_are_null(client):
     body = client.get("/api/accounts/1/weekly-summary", params={"as_of": "2026-03-02"}).json()
     assert [w["count"] for w in body["account_total"]["weeks"]][:5] == [None] * 5
+    assert [w["by_event_type"] for w in body["account_total"]["weeks"]][:5] == [None] * 5
     assert body["account_total"]["median"] is None

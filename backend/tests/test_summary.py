@@ -141,7 +141,7 @@ WINDOW = BASELINE_MONDAYS + [date(2026, 7, 20)]  # 05-25 .. 07-13, then this wee
 
 def test_each_location_has_its_nine_week_series(conn, three_sites):
     s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
-    series = {l.assessment.location: l.weeks for l in s.locations}
+    series = {l.assessment.location: [(p.week_start, p.count) for p in l.weeks] for l in s.locations}
     assert series["Site A"] == list(zip(WINDOW, [10, 8, 11, 10, 9, 12, 10, 10, 6]))
     assert series["Site B"] == list(zip(WINDOW, [1] * 8 + [0]))
     # Site C was first seen this week: no history before it
@@ -150,7 +150,7 @@ def test_each_location_has_its_nine_week_series(conn, three_sites):
 
 def account_total(summary):
     t = summary.account_total
-    return (t.count, t.median, t.typical_low, t.typical_high, [c for _, c in t.weeks])
+    return (t.count, t.median, t.typical_low, t.typical_high, [p.count for p in t.weeks])
 
 
 def test_account_total_covers_every_event_with_the_same_rule(conn, three_sites):
@@ -158,7 +158,7 @@ def test_account_total_covers_every_event_with_the_same_rule(conn, three_sites):
     # sorted 9 10 11 11 11 11 12 13 -> median 11, middle 6 = 10..12
     s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
     assert account_total(s) == (8, 11, 10, 12, [11, 9, 12, 11, 10, 13, 11, 11, 8])
-    assert [w for w, _ in s.account_total.weeks] == WINDOW
+    assert [p.week_start for p in s.account_total.weeks] == WINDOW
 
 
 def test_account_total_without_enough_history(conn, rows):
@@ -173,3 +173,25 @@ def test_account_total_for_an_account_without_events(conn, rows):
     rows.account(NY, "America/New_York")
     s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
     assert account_total(s) == (0, None, None, None, [None] * 8 + [0])
+
+
+def by_type(points):
+    return [None if p.by_event_type is None else
+            (p.by_event_type["call_received"], p.by_event_type["lead_created"], p.by_event_type["appointment_set"])
+            for p in points]
+
+
+def test_each_week_carries_its_per_type_counts(conn, rows):
+    rows.account(NY, "America/New_York")
+    for monday in BASELINE_MONDAYS:
+        rows.event(NY, "Site A", f"{monday} 16:00:00", n=2)                           # 2 calls every week
+    rows.event(NY, "Site A", "2026-06-09 16:00:00", event_type="lead_created")         # week 06-08
+    rows.event(NY, "Site A", "2026-06-10 16:00:00", event_type="appointment_set")      # week 06-08
+    rows.event(NY, "Site A", "2026-07-21 16:00:00")                                    # this week: 1 call
+    rows.event(NY, "Site A", "2026-07-22 16:00:00", event_type="lead_created", n=2)    # this week: 2 leads
+    rows.event(NY, "Site B", "2026-07-23 16:00:00", event_type="appointment_set")      # first seen this week
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    sites = {l.assessment.location: l.weeks for l in s.locations}
+    assert by_type(sites["Site A"]) == [(2, 0, 0), (2, 0, 0), (2, 1, 1)] + [(2, 0, 0)] * 5 + [(1, 2, 0)]
+    assert by_type(sites["Site B"]) == [None] * 8 + [(0, 0, 1)]
+    assert by_type(s.account_total.weeks) == [(2, 0, 0), (2, 0, 0), (2, 1, 1)] + [(2, 0, 0)] * 5 + [(1, 2, 1)]
