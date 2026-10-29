@@ -94,14 +94,14 @@ Notable choices inside it:
 
 1. Tune `MIN_FLAG_DISTANCE` and `MIN_BASELINE_MEDIAN` with product, using the examples below and in "Try these".
 2. Add the missed-call rate per account, with a minimum number of calls.
-3. Make the default as-of "today" and show how fresh the data is (fixes the limitation below).
+3. Make the default as-of the last week that has ended in every account's timezone, and show how fresh the data is (fixes the limitation below).
 4. Add a 9-week sparkline per location.
 5. Set up CI that runs `docker compose up` from scratch, both test suites, and one browser smoke test.
 
 ## Known limitations and open questions
 
-- **Account totals** (not defined in PLAN.md) are the sums of the location numbers, with the same median and range rule. They're context only and never flagged, even when well outside their range: Pacific Smiles appointments were 9 vs typical 4–6 in the week of Jul 13.
-- **The default as-of is the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally. The seed isn't affected; in production the default should be today's date.
+- **Account totals** (not defined in PLAN.md) are the account's own weekly counts per event type. Every event counts, including a new location's partial first week, so this week's total still equals the sum of the rows. They use the same median and range rule. They're context only and never flagged, even when well outside their range: Pacific Smiles appointments were 9 vs typical 4–6 in the week of Jul 13.
+- **The default as-of is the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally and can falsely flag it below typical. The seed isn't affected. Switching to today's date doesn't fix this if "today" is the UTC date: it has the same flaw. The default must pick the last week that has ended in every account's timezone (for example, using today's date in the westernmost zone).
 - **Questions for product:** see [PLAN.md §3](PLAN.md). Two more came up in review:
   - **The 0.3 threshold sits close to cases a person would call worrying.** Account 6 Site N, week of Apr 13: 1 event vs typical 3–8, distance 2/7 ≈ 0.29, so only "slightly below".
   - **Above and below typical share one highlight on purpose.** Whether more activity is good depends on the business.
