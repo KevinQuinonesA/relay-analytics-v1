@@ -12,7 +12,8 @@ interface Props {
   size?: "row" | "header";
 }
 
-const SIZES = { row: { width: 120, height: 32 }, header: { width: 160, height: 40 } };
+// same width in rows and header so the header sparkline sits in the rows' sparkline column
+const SIZES = { row: { width: 120, height: 32 }, header: { width: 120, height: 40 } };
 const PAD = 5; // room for the 8px this-week dot
 
 function describe(label: string, weeks: WeekPoint[], low: number | null, high: number | null): string {

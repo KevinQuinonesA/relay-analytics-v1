@@ -25,11 +25,13 @@ function SummaryView({ state }: { state: FetchState<WeeklySummary> }) {
       const s = state.data;
       return (
         <section aria-labelledby="summary-title">
-          <h2 id="summary-title">{s.account.name}</h2>
-          <p className="period">
-            Week of {formatRange(s.week.start, s.week.end)} · compared with the previous{" "}
-            {plural(s.baseline.weeks, "week")} ({formatRange(s.baseline.start, s.baseline.end)})
-          </p>
+          <div className="summary-head">
+            <h2 id="summary-title">{s.account.name}</h2>
+            <p className="period">
+              Week of {formatRange(s.week.start, s.week.end)} · compared with the previous{" "}
+              {plural(s.baseline.weeks, "week")} ({formatRange(s.baseline.start, s.baseline.end)})
+            </p>
+          </div>
           <AttentionLine summary={s} />
           <AccountTotals summary={s} />
           <LocationList summary={s} />

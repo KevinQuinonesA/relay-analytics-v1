@@ -13,6 +13,8 @@
   --spark-line: #57534e;
   --spark-current: #1d4ed8;
   --spark-band-opacity: 0.14;
+  /* location rows, their column headers and the account-total line share these columns */
+  --row-columns: 11rem 1fr 120px 5.5rem;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -123,9 +125,8 @@ button:disabled {
 
 .location {
   display: grid;
-  /* fixed sparkline and count columns so sparklines line up across rows */
-  grid-template-columns: 11rem 1fr 120px 5.5rem;
-  grid-template-areas: "status name spark count" "status detail spark ." "status types spark .";
+  grid-template-columns: var(--row-columns);
+  grid-template-areas: "status name spark count" "status detail spark count" "status types spark count";
   gap: 0.15rem 1rem;
   align-items: baseline;
   padding: 0.6rem 0.9rem;
@@ -140,12 +141,13 @@ button:disabled {
   border-left-color: var(--flag-border);
 }
 
-/* status centred in its column, horizontally and vertically, on every row */
+/* status left-aligned and vertically centred; the fixed icon slot lines up icons and labels */
 .status {
   grid-area: status;
   align-self: center;
-  justify-self: center;
-  text-align: center;
+  justify-self: start;
+  display: flex;
+  align-items: baseline;
   font-weight: 600;
 }
 
@@ -155,7 +157,10 @@ button:disabled {
 }
 
 .icon {
+  flex: none;
+  width: 1.1em;
   margin-right: 0.35rem;
+  text-align: center;
 }
 
 .name {
@@ -165,6 +170,7 @@ button:disabled {
 
 .count {
   grid-area: count;
+  align-self: center;
   justify-self: end;
   font-variant-numeric: tabular-nums;
 }
@@ -186,17 +192,62 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1.25rem;
-  padding: 0;
+  /* indented like .account-total and the rows (1px border + 4px left border + 0.9rem padding) */
+  padding: 0 0 0 calc(0.9rem + 5px);
   margin: 0.5rem 0 0;
 }
 
-.account-total {
-  display: flex;
-  flex-wrap: wrap;
+/* same columns and horizontal box as a location row, so the sparkline lines up with the rows' */
+.account-total,
+.location-columns {
+  display: grid;
+  grid-template-columns: var(--row-columns);
+  column-gap: 1rem;
   align-items: center;
-  gap: 0.25rem 1rem;
+  padding: 0 0.9rem;
+  border: 1px solid transparent;
+  border-left-width: 4px;
+}
+
+.account-total {
   margin: 0.75rem 0 0;
   font-weight: 600;
+}
+
+.account-total > :first-child {
+  grid-column: 1 / 3;
+}
+
+.account-total .sparkline {
+  grid-area: auto;
+  grid-column: 3;
+}
+
+.location-columns {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.location-columns > :last-child {
+  justify-self: end;
+}
+
+.location-columns + .locations {
+  margin-top: 0.35rem;
+}
+
+.summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.75rem;
+  margin: 1.5rem 0 0.25rem;
+}
+
+.summary-head h2,
+.summary-head .period {
+  margin: 0;
 }
 
 .sparkline {
@@ -258,6 +309,21 @@ button:disabled {
 }
 
 @media (max-width: 34rem) {
+  .location-columns {
+    display: none;
+  }
+
+  .account-total {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    padding: 0;
+  }
+
+  .totals {
+    padding: 0;
+  }
+
   .location {
     grid-template-columns: 1fr auto;
     grid-template-areas: "status status" "name count" "detail detail" "types types" "spark spark";

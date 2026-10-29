@@ -58,15 +58,22 @@ export function LocationList({ summary }: { summary: WeeklySummary }) {
     return <p className="empty">No activity recorded for this account yet.</p>;
   }
   return (
-    <ul className="locations" aria-label="Locations, most unusual first">
+    <>
+      {/* Visual column labels; each row already reads on its own, so they're hidden from screen readers. */}
+      <div className="location-columns" data-testid="location-columns" aria-hidden="true">
+        <span>Status</span>
+        <span>Location</span>
+        <span>Last 9 weeks</span>
+        <span>This week</span>
+      </div>
+      <ul className="locations" aria-label="Locations, most unusual first">
       {summary.locations.map((location) => (
         <li key={location.location} className={`location status-${location.status}${location.flagged ? " flagged" : ""}`}>
           <span className="status">
-            {STATUS_ICON[location.status] && (
-              <span className="icon" aria-hidden="true">
-                {STATUS_ICON[location.status]}
-              </span>
-            )}
+            {/* fixed-width slot, empty when there's no icon, so icons and labels line up */}
+            <span className="icon" aria-hidden="true">
+              {STATUS_ICON[location.status] ?? ""}
+            </span>
             {STATUS_LABEL[location.status]}
           </span>
           <span className="name">{location.location}</span>
@@ -79,6 +86,7 @@ export function LocationList({ summary }: { summary: WeeklySummary }) {
                      typicalLow={location.typical_low} typicalHigh={location.typical_high} />
         </li>
       ))}
-    </ul>
+      </ul>
+    </>
   );
 }
