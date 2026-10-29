@@ -96,7 +96,7 @@ button:disabled {
 .location {
   display: grid;
   grid-template-columns: 11rem 1fr auto;
-  grid-template-areas: "status name count" "status detail detail";
+  grid-template-areas: "status name count" "status detail detail" "status types types";
   gap: 0.15rem 1rem;
   align-items: baseline;
   padding: 0.6rem 0.9rem;
@@ -141,9 +141,24 @@ button:disabled {
   font-size: 0.875rem;
 }
 
+.types {
+  grid-area: types;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.totals {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
 @media (max-width: 34rem) {
   .location {
     grid-template-columns: 1fr auto;
-    grid-template-areas: "status status" "name count" "detail detail";
+    grid-template-areas: "status status" "name count" "detail detail" "types types";
   }
 }

@@ -1,5 +1,6 @@
 import type { LocationWeek, Status, WeeklySummary } from "../api";
 import { plural } from "../format";
+import { eventTypeCounts } from "./AccountTotals";
 
 const STATUS_LABEL: Record<Status, string> = {
   above_typical: "Above typical",
@@ -52,6 +53,7 @@ export function LocationList({ summary }: { summary: WeeklySummary }) {
           <span className="detail">
             <Detail location={location} summary={summary} />
           </span>
+          <span className="types">{eventTypeCounts(location.by_event_type)}</span>
         </li>
       ))}
     </ul>

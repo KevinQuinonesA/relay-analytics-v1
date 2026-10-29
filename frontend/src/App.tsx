@@ -1,3 +1,4 @@
+import { AccountTotals } from "./components/AccountTotals";
 import { Controls } from "./components/Controls";
 import { LocationList } from "./components/LocationList";
 import { formatRange, plural } from "./format";
@@ -29,6 +30,7 @@ function SummaryView({ state }: { state: FetchState<WeeklySummary> }) {
             Week of {formatRange(s.week.start, s.week.end)} · compared with the previous{" "}
             {plural(s.baseline.weeks, "week")} ({formatRange(s.baseline.start, s.baseline.end)})
           </p>
+          <AccountTotals summary={s} />
           <LocationList summary={s} />
         </section>
       );
