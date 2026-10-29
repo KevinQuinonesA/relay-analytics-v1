@@ -13,9 +13,13 @@ const STATUS_LABEL: Record<Status, string> = {
   insufficient_history: "Not enough history yet",
 };
 
+// Solid arrows for flagged rows, lighter outline arrows for slightly outside, none otherwise.
+// Decorative: the status text says the same thing.
 const STATUS_ICON: Partial<Record<Status, string>> = {
   above_typical: "▲",
   below_typical: "▼",
+  slightly_above: "△",
+  slightly_below: "▽",
 };
 
 function Detail({ location, summary }: { location: LocationWeek; summary: WeeklySummary }) {
@@ -56,7 +60,7 @@ export function LocationList({ summary }: { summary: WeeklySummary }) {
   return (
     <ul className="locations" aria-label="Locations, most unusual first">
       {summary.locations.map((location) => (
-        <li key={location.location} className={`location status-${location.status}${location.flagged ? " flagged" : ""}`}>
+        <li key={location.location} className={`location status-${location.status}${location.flagged ? " flagged" : ""}${STATUS_ICON[location.status] ? "" : " no-icon"}`}>
           <span className="status">
             {STATUS_ICON[location.status] && (
               <span className="icon" aria-hidden="true">

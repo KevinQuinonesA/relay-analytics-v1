@@ -145,6 +145,11 @@ button:disabled {
   font-weight: 600;
 }
 
+/* rows without a direction icon: status centred against the whole row */
+.location.no-icon .status {
+  align-self: center;
+}
+
 .location:not(.flagged) .status {
   font-weight: 400;
   color: var(--muted);
