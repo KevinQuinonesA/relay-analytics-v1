@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import text
 
 from relay.normality import Assessment, Thresholds, assess, rank
-from relay.weekly import default_as_of, location_weeks, target_week
+from relay.weekly import account_rows, default_as_of, location_weeks, target_week
 
 
 @dataclass(frozen=True)
@@ -24,7 +24,12 @@ class Summary:
     week_end: date
     baseline_start: date
     baseline_end: date
+    thresholds: Thresholds
     locations: list  # LocationSummary, ranked
+
+
+def accounts(conn):
+    return account_rows(conn)
 
 
 def weekly_summary(conn, account_id, as_of=None, limits=Thresholds()):
@@ -59,5 +64,6 @@ def weekly_summary(conn, account_id, as_of=None, limits=Thresholds()):
         week_end=week + timedelta(days=6),
         baseline_start=week - timedelta(weeks=limits.baseline_weeks),
         baseline_end=week - timedelta(days=1),
+        thresholds=limits,
         locations=[by_location[a.location] for a in rank(l.assessment for l in by_location.values())],
     )

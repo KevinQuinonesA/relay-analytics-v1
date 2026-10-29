@@ -94,3 +94,19 @@ def location_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WE
         lw = result.setdefault(location, LocationWeeks(location, history_start, []))
         lw.weeks.append(WeekCounts(week_start, *counts))
     return list(result.values())
+
+
+ACCOUNTS_SQL = text(
+    """
+    SELECT a.id, a.name, a.timezone, count(DISTINCT e.location) AS location_count
+    FROM accounts a
+    LEFT JOIN activity_events_dedup e ON e.account_id = a.id
+    GROUP BY a.id, a.name, a.timezone
+    ORDER BY a.id
+    """
+)
+
+
+def account_rows(conn):
+    """Every account with its number of locations (id, name, timezone, location_count)."""
+    return conn.execute(ACCOUNTS_SQL).all()
