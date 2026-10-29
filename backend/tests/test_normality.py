@@ -182,6 +182,20 @@ def test_trim_must_leave_at_least_one_week(bad):
         assess("Site A", 10, [10] * 8, bad)
 
 
+@pytest.mark.parametrize(
+    "bad",
+    [
+        Thresholds(min_baseline_median=0),          # baseline [0 0 0 0 0 0 3 9] -> median 0 -> divide by zero
+        Thresholds(min_baseline_median=-1),
+        Thresholds(range_trim=-1),                  # would invert the range (high < low)
+        Thresholds(min_flag_distance=Fraction(-1, 10)),
+    ],
+)
+def test_thresholds_outside_their_valid_range_are_rejected(bad):
+    with pytest.raises(ValueError):
+        assess("Site A", 5, [0, 0, 0, 0, 0, 0, 3, 9], bad)
+
+
 # --- ranking ------------------------------------------------------------------------
 
 def make(location, count, baseline=STEADY_10):
@@ -223,3 +237,8 @@ def test_rank_does_not_depend_on_input_order():
         shuffled = items[:]
         random.Random(seed).shuffle(shuffled)
         assert [a.location for a in rank(shuffled)] == expected
+
+
+def test_zero_flag_distance_is_allowed_and_flags_anything_outside_the_range():
+    # option (a) from the plan: (9 - 8) / 10 = 1/10 >= 0 -> flagged
+    assert assess("Site A", 8, STEADY_10, Thresholds(min_flag_distance=Fraction(0))).status is Status.BELOW_TYPICAL
