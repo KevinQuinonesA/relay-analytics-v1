@@ -16,8 +16,16 @@ const WEEK_BOUNDS: [string, string][] = [
   ["2026-07-06", "2026-07-12"], ["2026-07-13", "2026-07-19"], ["2026-07-20", "2026-07-26"],
 ];
 
-function weeks(counts: (number | null)[]): WeekPoint[] {
-  return WEEK_BOUNDS.map(([start, end], i) => ({ start, end, count: counts[i] ?? null }));
+type Types = [number, number, number]; // calls, leads, appointments
+
+// Per-type counts default to all calls, so they always add up to the count.
+function weeks(counts: (number | null)[], types: (Types | null)[] = []): WeekPoint[] {
+  return WEEK_BOUNDS.map(([start, end], i) => {
+    const count = counts[i] ?? null;
+    const [c, l, a] = types[i] ?? [count ?? 0, 0, 0];
+    return { start, end, count,
+             by_event_type: count === null ? null : { call_received: c, lead_created: l, appointment_set: a } };
+  });
 }
 
 function location(overrides: Partial<LocationWeek> & Pick<LocationWeek, "location" | "status">): LocationWeek {
@@ -48,12 +56,14 @@ const SUMMARY: WeeklySummary = {
   },
   account_total: {
     count: 20, median: 19, typical_low: 15, typical_high: 24,
-    weeks: weeks([15, 33, 23, 14, 24, 16, 19, 19, 20]),
+    weeks: weeks([15, 33, 23, 14, 24, 16, 19, 19, 20],
+                 [[11, 0, 4], [21, 7, 5], [19, 3, 1], [11, 2, 1], [12, 8, 4], [12, 2, 2], [12, 4, 3], [9, 6, 4], [9, 6, 5]]),
   },
   locations: [
     location({ location: "Site C", status: "above_typical", flagged: true, count: 12, typical_low: 4, typical_high: 7,
                by_event_type: { call_received: 7, lead_created: 3, appointment_set: 2 },
-               weeks: weeks([4, 5, 10, 4, 6, 6, 7, 6, 12]) }),
+               weeks: weeks([4, 5, 10, 4, 6, 6, 7, 6, 12],
+                            [[3, 0, 1], [1, 2, 2], [8, 1, 1], [1, 2, 1], [2, 2, 2], [5, 0, 1], [4, 2, 1], [2, 2, 2], [7, 3, 2]]) }),
     location({ location: "Site B", status: "below_typical", flagged: true, count: 2, typical_low: 4, typical_high: 12 }),
     location({ location: "Site D", status: "slightly_below", count: 5, typical_low: 6, typical_high: 9 }),
     location({ location: "Site A", status: "typical" }),
@@ -215,9 +225,12 @@ describe("sparklines", () => {
     const points = within(siteC!).getAllByTestId("spark-hit");
     expect(points).toHaveLength(9);
     fireEvent.mouseEnter(points[5]!);
-    expect(within(siteC!).getByRole("tooltip").textContent).toBe("Jun 29–Jul 5: 6 events");
+    const tooltip = within(siteC!).getByRole("tooltip");
+    expect(within(tooltip).getByText("Jun 29–Jul 5: 6 events")).toBeTruthy();
+    expect(within(tooltip).getByText("Calls 5 · Leads 0 · Appointments 1")).toBeTruthy();
     fireEvent.mouseEnter(points[8]!);
-    expect(within(siteC!).getByRole("tooltip").textContent).toBe("Jul 20–26: 12 events");
+    expect(within(within(siteC!).getByRole("tooltip")).getByText("Jul 20–26: 12 events")).toBeTruthy();
+    expect(within(within(siteC!).getByRole("tooltip")).getByText("Calls 7 · Leads 3 · Appointments 2")).toBeTruthy();
     fireEvent.mouseLeave(points[8]!);
     expect(within(siteC!).queryByRole("tooltip")).toBeNull();
   });
@@ -232,6 +245,16 @@ describe("sparklines", () => {
     );
     const siteC = (await locationRows())[0]!;
     expect(within(siteC).getByTestId("spark-band")).toBeTruthy();
+  });
+
+  it("breaks the account total's week down by type on hover", async () => {
+    openAt("?account=15");
+    const total = (await screen.findByText("All events 20 (typical 15–24)")).closest(".account-total") as HTMLElement;
+    const points = within(total).getAllByTestId("spark-hit");
+    fireEvent.mouseEnter(points[8]!);
+    const tooltip = within(total).getByRole("tooltip");
+    expect(within(tooltip).getByText("Jul 20–26: 20 events")).toBeTruthy();
+    expect(within(tooltip).getByText("Calls 9 · Leads 6 · Appointments 5")).toBeTruthy();
   });
 
   it("shows the account total with its own sparkline in the header", async () => {

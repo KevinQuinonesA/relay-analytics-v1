@@ -34,6 +34,7 @@ export interface WeekPoint {
   start: string; // YYYY-MM-DD
   end: string;
   count: number | null; // null before the location's (or account's) history starts
+  by_event_type: Record<EventType, number> | null; // context only; adds up to count
 }
 
 export interface LocationWeek {
