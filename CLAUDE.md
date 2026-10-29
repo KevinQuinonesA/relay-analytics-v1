@@ -41,3 +41,41 @@ Ports: `DB_PORT` (default 5432), `BACKEND_PORT` (default 8000).
 - **Check that new tests bite:** inject the bug they target, confirm a failure, restore.
 - **Any number or claim about the data** comes with the query that produced it and its raw output. Run `/verify` and label inferences as inferred.
 - **`PLAN.md` is not edited unless the user says so.** Deviations and known limitations go in README.md.
+
+## Stack conventions
+
+### Backend (FastAPI + SQLAlchemy 2.0 + Postgres)
+
+- Route handlers stay thin: validate input, call `relay.summary`, return. No SQL or rule logic in routes.
+
+- Every endpoint has a Pydantic response model; that's the API contract.
+
+- SQL lives in `relay/[weekly.py](http://weekly.py)`, always with bound parameters, never f-strings.
+
+- Sync SQLAlchemy is fine here, don't introduce async without a reason.
+
+- Errors are real status codes (404 unknown account, 422 bad input), never a 200 with an error body.
+
+- Never edit an applied migration, add a new one. Every migration has a working downgrade.
+
+- No new dependency without saying why.
+
+### Frontend (React + TypeScript + Vite)
+
+- TypeScript strict, no `any`.
+
+- Function components and hooks. Data fetching lives in hooks (e.g. `useWeeklySummary`), components just render.
+
+- The URL is the single source of truth for account and as-of. No `useState` copy of it.
+
+- Every fetch handles loading, error and empty states explicitly.
+
+- The frontend never computes or re-ranks, it renders what the API returns.
+
+- Plain CSS, no UI library. Status is shown with text or icon, never color alone.
+
+- Tests use Testing Library from the user's point of view (roles, visible text), not implementation details.
+
+### Commits
+
+- Small, one concern each. The message says what and why.
