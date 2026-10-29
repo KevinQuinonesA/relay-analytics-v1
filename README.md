@@ -23,14 +23,19 @@ The plan, decisions and their alternatives are in [PLAN.md](PLAN.md).
 Requires Docker.
 
 ```bash
-docker compose up --build   # Postgres, migrations, seed (loaded once)
+docker compose up --build   # Postgres, migrations, seed (loaded once), API, UI
 make test                   # backend tests against a throwaway database
 ```
+
+Then open <http://localhost:5173>. The selected account and as-of date are in the URL (`/?account=15&as_of=2026-04-20`), so a reload or a shared link keeps them.
 
 | Variable | Default | What it sets |
 |---|---|---|
 | `DB_PORT` | `5432` | Host port for Postgres |
-| `BACKEND_PORT` | `8000` | Host port for the API (from phase 4) |
+| `BACKEND_PORT` | `8000` | Host port for the API |
+| `FRONTEND_PORT` | `5173` | Host port for the UI |
+
+API: `GET /api/accounts` and `GET /api/accounts/{id}/weekly-summary?as_of=YYYY-MM-DD` (`as_of` optional, defaults to the latest data). Interactive docs at `/docs` on the backend port.
 
 ## Data
 
