@@ -52,6 +52,25 @@ class ThresholdsOut(BaseModel):
     min_flag_distance: float
 
 
+class EventTypeCounts(BaseModel):
+    call_received: int
+    lead_created: int
+    appointment_set: int
+
+
+class TypeTotalsOut(BaseModel):
+    count: int
+    median: float | None
+    typical_low: int | None
+    typical_high: int | None
+
+
+class AccountTotalsOut(BaseModel):
+    call_received: TypeTotalsOut
+    lead_created: TypeTotalsOut
+    appointment_set: TypeTotalsOut
+
+
 class LocationOut(BaseModel):
     location: str
     status: Status
@@ -61,6 +80,7 @@ class LocationOut(BaseModel):
     typical_low: int | None
     typical_high: int | None
     distance: float | None  # events beyond the typical range / median
+    by_event_type: EventTypeCounts  # context only, not flagged
 
 
 class WeeklySummaryOut(BaseModel):
@@ -69,6 +89,7 @@ class WeeklySummaryOut(BaseModel):
     week: Period
     baseline: BaselineOut
     thresholds: ThresholdsOut
+    account_totals: AccountTotalsOut  # context only, not flagged
     locations: list[LocationOut]  # ranked; the client must not re-sort
 
 
@@ -98,17 +119,28 @@ def _summary_out(s):
             min_baseline_median=t.min_baseline_median,
             min_flag_distance=float(t.min_flag_distance),
         ),
+        account_totals=AccountTotalsOut(**{
+            et: TypeTotalsOut(
+                count=t.count, median=_float(t.median), typical_low=t.typical_low, typical_high=t.typical_high,
+            )
+            for et, t in s.account_totals.items()
+        }),
         locations=[
             LocationOut(
-                location=a.location,
-                status=a.status,
-                flagged=a.flagged,
-                count=a.count,
-                median=None if a.median is None else float(a.median),
-                typical_low=a.typical_low,
-                typical_high=a.typical_high,
-                distance=None if a.distance is None else float(a.distance),
+                location=loc.assessment.location,
+                status=loc.assessment.status,
+                flagged=loc.assessment.flagged,
+                count=loc.assessment.count,
+                median=_float(loc.assessment.median),
+                typical_low=loc.assessment.typical_low,
+                typical_high=loc.assessment.typical_high,
+                distance=_float(loc.assessment.distance),
+                by_event_type=EventTypeCounts(**loc.by_event_type),
             )
-            for a in (loc.assessment for loc in s.locations)
+            for loc in s.locations
         ],
     )
+
+
+def _float(value):
+    return None if value is None else float(value)
