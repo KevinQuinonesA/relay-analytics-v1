@@ -118,6 +118,20 @@ def account_total(account, as_of):
     return series[-1][1], median(b), b[TRIM], b[-1 - TRIM], series
 
 
+def location_type_series(account, location, as_of):
+    """Per event type for each week of location_series: dict of counts, or None before history."""
+    return [(w, None if c is None else {et: by_type[account, location, w, et] for et in TYPES})
+            for w, c in location_series(account, location, as_of)]
+
+
+def account_type_series(account, as_of):
+    """Per event type for each week of account_total's series."""
+    week = monday(as_of) - timedelta(weeks=1)
+    locs = [(a, l) for (a, l) in history_start if a == account and first_day[a, l] <= week + timedelta(days=6)]
+    return [(w, None if c is None else {et: sum(by_type[a, l, w, et] for a, l in locs) for et in TYPES})
+            for w, c in account_total(account, as_of)[4]]
+
+
 def fmt(r):
     loc, status, cur, med, lo, hi, dist = r
     return f"{loc}: {status} count={cur} median={med} range={lo}..{hi} distance={dist}"
@@ -153,3 +167,18 @@ for account, location, as_of in ((6, "Site G", date(2026, 4, 20)), (15, "Site C"
 for account, as_of in ((6, date(2026, 4, 20)), (15, date(2026, 7, 27)), (1, date(2026, 3, 2)), (20, date(2026, 7, 27))):
     c, m, lo, hi, series = account_total(account, as_of)
     print(f"account_total {account} as_of {as_of}: count={c} median={m} range={lo}..{hi} series={[x for _, x in series]}")
+fmt_types = lambda d: None if d is None else (d["call_received"], d["lead_created"], d["appointment_set"])
+print("type series account 6 Site G as_of 2026-04-20:", [fmt_types(d) for _, d in location_type_series(6, "Site G", date(2026, 4, 20))])
+print("type series account 15 Site C as_of 2026-07-27:", [fmt_types(d) for _, d in location_type_series(15, "Site C", date(2026, 7, 27))])
+print("account type series 6 as_of 2026-04-20:", [fmt_types(d) for _, d in account_type_series(6, date(2026, 4, 20))])
+print("account type series 15 as_of 2026-07-27:", [fmt_types(d) for _, d in account_type_series(15, date(2026, 7, 27))])
+bad = 0
+for as_of in (date(2026, 7, 27), date(2026, 4, 20), date(2026, 3, 2)):
+    for a in sorted(tz):
+        for (aa, l) in history_start:
+            if aa == a and first_day[aa, l] <= monday(as_of) - timedelta(days=1):
+                for (w, c), (_, d) in zip(location_series(a, l, as_of), location_type_series(a, l, as_of)):
+                    bad += (c is None) != (d is None) or (c is not None and sum(d.values()) != c)
+        for (w, c), (_, d) in zip(account_total(a, as_of)[4], account_type_series(a, as_of)):
+            bad += (c is None) != (d is None) or (c is not None and sum(d.values()) != c)
+print("weeks where the types don't add up to the total:", bad)
