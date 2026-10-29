@@ -96,6 +96,13 @@ def location_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WE
     return list(result.values())
 
 
+def account_row(conn, account_id):
+    """(id, name, timezone) for one account, or None."""
+    return conn.execute(
+        text("SELECT id, name, timezone FROM accounts WHERE id = :id"), {"id": account_id}
+    ).one_or_none()
+
+
 ACCOUNTS_SQL = text(
     """
     SELECT a.id, a.name, a.timezone, count(DISTINCT e.location) AS location_count

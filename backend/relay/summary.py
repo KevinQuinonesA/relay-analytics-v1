@@ -2,10 +2,8 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import text
-
 from relay.normality import Assessment, Thresholds, assess, rank
-from relay.weekly import account_rows, default_as_of, location_weeks, target_week
+from relay.weekly import account_row, account_rows, default_as_of, location_weeks, target_week
 
 
 @dataclass(frozen=True)
@@ -34,9 +32,7 @@ def accounts(conn):
 
 def weekly_summary(conn, account_id, as_of=None, limits=Thresholds()):
     """The ranked weekly summary for one account, or None if the account doesn't exist."""
-    account = conn.execute(
-        text("SELECT id, name, timezone FROM accounts WHERE id = :id"), {"id": account_id}
-    ).one_or_none()
+    account = account_row(conn, account_id)
     if account is None:
         return None
     as_of = as_of or default_as_of(conn) or datetime.now(timezone.utc).date()
