@@ -72,8 +72,10 @@ TYPES = ("call_received", "lead_created", "appointment_set")
 
 
 def account_totals(account, as_of):
-    """Per event type: this week's count, plus median/range over the baseline, summing each
-    location's weeks from its own history start (the target week always counts)."""
+    """Per event type: this week's count, plus median/range over the baseline. Every event of
+    the account counts in its week, including a new location's partial first week; the
+    baseline starts at the account's own history start (first Monday on or after its first
+    event)."""
     week = monday(as_of) - timedelta(weeks=1)
     base_weeks = [week - timedelta(weeks=n) for n in range(WEEKS, 0, -1)]
     locs = [(a, l) for (a, l) in history_start if a == account and first_day[a, l] <= week + timedelta(days=6)]
@@ -82,7 +84,7 @@ def account_totals(account, as_of):
         cur = sum(by_type[a, l, week, et] for a, l in locs)
         if not locs or base_weeks[0] < min(history_start[k] for k in locs):
             out[et] = (cur, None, None, None); continue
-        b = sorted(sum(by_type[a, l, w, et] for a, l in locs if w >= history_start[a, l]) for w in base_weeks)
+        b = sorted(sum(by_type[a, l, w, et] for a, l in locs) for w in base_weeks)
         out[et] = (cur, median(b), b[TRIM], b[-1 - TRIM])
     return out
 
@@ -113,7 +115,7 @@ for account, as_of in ((15, date(2026, 7, 27)), (6, date(2026, 4, 20)), (6, date
         print("  ", fmt(r))
 print("\naccount 15 Site B week 2026-07-20 by type:",
       {et: by_type[15, "Site B", date(2026, 7, 20), et] for et in ("call_received", "lead_created", "appointment_set")})
-for account, as_of in ((15, date(2026, 7, 27)), (6, date(2026, 4, 20)), (1, date(2026, 3, 2))):
+for account, as_of in ((15, date(2026, 7, 27)), (6, date(2026, 4, 20)), (1, date(2026, 3, 2)), (2, date(2026, 4, 6))):
     print(f"account {account} as_of {as_of} totals (count, median, low, high):", account_totals(account, as_of))
 print("account 6 Site G week 2026-04-13 by type:",
       {et: by_type[6, "Site G", date(2026, 4, 13), et] for et in TYPES})
