@@ -99,6 +99,11 @@ function openAt(search: string) {
   return render(<App />);
 }
 
+async function statCards() {
+  const list = await screen.findByRole("list", { name: /account totals/i });
+  return within(list).getAllByRole("listitem");
+}
+
 async function locationRows() {
   const list = await screen.findByRole("list", { name: /locations/i });
   return within(list).getAllByRole("listitem");
@@ -169,14 +174,19 @@ describe("weekly summary", () => {
     expect(within(siteC!).getByText("calls 7 · leads 3 · appointments 2")).toBeTruthy();
   });
 
-  it("shows account totals with their typical range, and the count alone without a baseline", async () => {
+  it("shows the account totals as stat cards: label, big number, typical range", async () => {
     openAt("?account=15");
-    const totals = await screen.findByRole("list", { name: /account totals/i });
-    expect(within(totals).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Calls 9 (typical 11–19)",
-      "Leads 6 (typical 2–7)",
-      "Appointments 5",
-    ]);
+    const cards = await statCards();
+    expect(cards).toHaveLength(4);
+    const expectCard = (card: HTMLElement, label: string, value: string, range: string) => {
+      expect(within(card).getByText(label)).toBeTruthy();
+      expect(within(card).getByText(value)).toBeTruthy();
+      expect(within(card).getByText(range)).toBeTruthy();
+    };
+    expectCard(cards[0]!, "All events", "20", "typical 15–24");
+    expectCard(cards[1]!, "Calls", "9", "typical 11–19");
+    expectCard(cards[2]!, "Leads", "6", "typical 2–7");
+    expectCard(cards[3]!, "Appointments", "5", "no typical range yet");
   });
 
   it("shows the week and the baseline it is compared with", async () => {
@@ -272,7 +282,7 @@ describe("sparklines", () => {
 
   it("breaks the account total's week down by type on hover", async () => {
     openAt("?account=15");
-    const total = (await screen.findByText("All events 20 (typical 15–24)")).closest(".account-total") as HTMLElement;
+    const total = (await statCards())[0]!;
     const points = within(total).getAllByTestId("spark-hit");
     fireEvent.mouseEnter(points[8]!);
     const tooltip = within(total).getByRole("tooltip");
@@ -280,10 +290,9 @@ describe("sparklines", () => {
     expect(within(tooltip).getByText("Calls 9 · Leads 6 · Appointments 5")).toBeTruthy();
   });
 
-  it("shows the account total with its own sparkline in the header", async () => {
+  it("shows the account total with its own sparkline in the All events card", async () => {
     openAt("?account=15");
-    const total = await screen.findByText("All events 20 (typical 15–24)");
-    const chart = within(total.closest(".account-total") as HTMLElement).getByRole("img");
+    const chart = within((await statCards())[0]!).getByRole("img");
     expect(chart.getAttribute("aria-label")).toMatch(/^All events, weekly events: May 25–31: 15, .* Jul 20–26: 20 \(this week\)\. Typical range 15–24\.$/);
   });
 });
