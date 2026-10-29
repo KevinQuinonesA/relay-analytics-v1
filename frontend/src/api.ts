@@ -30,6 +30,12 @@ export interface TypeTotals {
   typical_high: number | null;
 }
 
+export interface WeekPoint {
+  start: string; // YYYY-MM-DD
+  end: string;
+  count: number | null; // null before the location's (or account's) history starts
+}
+
 export interface LocationWeek {
   location: string;
   status: Status;
@@ -40,6 +46,7 @@ export interface LocationWeek {
   typical_high: number | null;
   distance: number | null;
   by_event_type: Record<EventType, number>; // context only
+  weeks: WeekPoint[]; // 8 baseline weeks then this week, oldest first
 }
 
 export interface WeeklySummary {
@@ -54,6 +61,7 @@ export interface WeeklySummary {
     min_flag_distance: number;
   };
   account_totals: Record<EventType, TypeTotals>; // context only, not flagged
+  account_total: TypeTotals & { weeks: WeekPoint[] }; // all event types; context only, not flagged
   locations: LocationWeek[]; // already ranked by the API
 }
 

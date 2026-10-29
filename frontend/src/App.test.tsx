@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Account, LocationWeek, WeeklySummary } from "./api";
+import type { Account, LocationWeek, WeekPoint, WeeklySummary } from "./api";
 import { App } from "./App";
 
 const ACCOUNTS: Account[] = [
@@ -9,8 +9,20 @@ const ACCOUNTS: Account[] = [
   { id: 15, name: "Sierra Pest Solutions", timezone: "America/Phoenix", location_count: 3 },
 ];
 
+// The 8 baseline weeks plus this week, as the API sends them.
+const WEEK_BOUNDS: [string, string][] = [
+  ["2026-05-25", "2026-05-31"], ["2026-06-01", "2026-06-07"], ["2026-06-08", "2026-06-14"],
+  ["2026-06-15", "2026-06-21"], ["2026-06-22", "2026-06-28"], ["2026-06-29", "2026-07-05"],
+  ["2026-07-06", "2026-07-12"], ["2026-07-13", "2026-07-19"], ["2026-07-20", "2026-07-26"],
+];
+
+function weeks(counts: (number | null)[]): WeekPoint[] {
+  return WEEK_BOUNDS.map(([start, end], i) => ({ start, end, count: counts[i] ?? null }));
+}
+
 function location(overrides: Partial<LocationWeek> & Pick<LocationWeek, "location" | "status">): LocationWeek {
   return {
+    weeks: weeks([5, 6, 7, 6, 5, 8, 6, 7, 6]),
     flagged: false,
     count: 6,
     median: 6,
@@ -34,15 +46,20 @@ const SUMMARY: WeeklySummary = {
     lead_created: { count: 6, median: 3.5, typical_low: 2, typical_high: 7 },
     appointment_set: { count: 5, median: null, typical_low: null, typical_high: null },
   },
+  account_total: {
+    count: 20, median: 19, typical_low: 15, typical_high: 24,
+    weeks: weeks([15, 33, 23, 14, 24, 16, 19, 19, 20]),
+  },
   locations: [
     location({ location: "Site C", status: "above_typical", flagged: true, count: 12, typical_low: 4, typical_high: 7,
-               by_event_type: { call_received: 7, lead_created: 3, appointment_set: 2 } }),
+               by_event_type: { call_received: 7, lead_created: 3, appointment_set: 2 },
+               weeks: weeks([4, 5, 10, 4, 6, 6, 7, 6, 12]) }),
     location({ location: "Site B", status: "below_typical", flagged: true, count: 2, typical_low: 4, typical_high: 12 }),
     location({ location: "Site D", status: "slightly_below", count: 5, typical_low: 6, typical_high: 9 }),
     location({ location: "Site A", status: "typical" }),
     location({ location: "Site F", status: "too_little_activity", median: 4, distance: null }),
     location({ location: "Site E", status: "insufficient_history", median: null, typical_low: null,
-               typical_high: null, distance: null }),
+               typical_high: null, distance: null, weeks: weeks([null, null, null, null, null, null, null, null, 6]) }),
   ],
 };
 
@@ -178,6 +195,50 @@ describe("as-of control", () => {
     const input = (await screen.findByLabelText("As of")) as HTMLInputElement;
     const hint = screen.getByText("Shows the last complete week (Mon–Sun) before this date.");
     expect(input.getAttribute("aria-describedby")).toBe(hint.id);
+  });
+});
+
+describe("sparklines", () => {
+  it("describes each location's 9 weeks, marking this week", async () => {
+    openAt("?account=15");
+    const [siteC] = await locationRows();
+    const chart = within(siteC!).getByRole("img");
+    expect(chart.getAttribute("aria-label")).toBe(
+      "Site C, weekly events: May 25–31: 4, Jun 1–7: 5, Jun 8–14: 10, Jun 15–21: 4, Jun 22–28: 6, " +
+        "Jun 29–Jul 5: 6, Jul 6–12: 7, Jul 13–19: 6, Jul 20–26: 12 (this week). Typical range 4–7.",
+    );
+  });
+
+  it("shows the week and its count when hovering a point", async () => {
+    openAt("?account=15");
+    const [siteC] = await locationRows();
+    const points = within(siteC!).getAllByTestId("spark-hit");
+    expect(points).toHaveLength(9);
+    fireEvent.mouseEnter(points[5]!);
+    expect(within(siteC!).getByRole("tooltip").textContent).toBe("Jun 29–Jul 5: 6 events");
+    fireEvent.mouseEnter(points[8]!);
+    expect(within(siteC!).getByRole("tooltip").textContent).toBe("Jul 20–26: 12 events");
+    fireEvent.mouseLeave(points[8]!);
+    expect(within(siteC!).queryByRole("tooltip")).toBeNull();
+  });
+
+  it("skips weeks before a location's history and draws no range without a baseline", async () => {
+    openAt("?account=15");
+    const siteE = (await locationRows())[5]!;
+    expect(within(siteE).getAllByTestId("spark-hit")).toHaveLength(1);
+    expect(within(siteE).queryByTestId("spark-band")).toBeNull();
+    expect(within(siteE).getByRole("img").getAttribute("aria-label")).toBe(
+      "Site E, weekly events: Jul 20–26: 6 (this week).",
+    );
+    const siteC = (await locationRows())[0]!;
+    expect(within(siteC).getByTestId("spark-band")).toBeTruthy();
+  });
+
+  it("shows the account total with its own sparkline in the header", async () => {
+    openAt("?account=15");
+    const total = await screen.findByText("All events 20 (typical 15–24)");
+    const chart = within(total.closest(".account-total") as HTMLElement).getByRole("img");
+    expect(chart.getAttribute("aria-label")).toMatch(/^All events, weekly events: May 25–31: 15, .* Jul 20–26: 20 \(this week\)\. Typical range 15–24\.$/);
   });
 });
 
