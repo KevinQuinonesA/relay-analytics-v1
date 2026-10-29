@@ -89,6 +89,35 @@ def account_totals(account, as_of):
     return out
 
 
+def location_series(account, location, as_of):
+    """The 8 baseline weeks plus this week for one location: (week start, count), with None
+    for weeks before its history start (this week always has a count)."""
+    week = monday(as_of) - timedelta(weeks=1)
+    out = []
+    for n in range(WEEKS, -1, -1):
+        w = week - timedelta(weeks=n)
+        out.append((w, weekly[account, location, w] if w >= history_start[account, location] or w == week else None))
+    return out
+
+
+def account_total(account, as_of):
+    """All events of the account: this week's count, median/range over the baseline (same rule,
+    every event counts) and the 9-week series with None before the account's history start."""
+    week = monday(as_of) - timedelta(weeks=1)
+    locs = [(a, l) for (a, l) in history_start if a == account and first_day[a, l] <= week + timedelta(days=6)]
+    total = lambda w: sum(weekly[a, l, w] for a, l in locs)
+    if not locs:
+        return 0, None, None, None, [(week - timedelta(weeks=n), None if n else 0) for n in range(WEEKS, -1, -1)]
+    start = min(history_start[k] for k in locs)
+    series = [(w, total(w) if w >= start or w == week else None)
+              for w in (week - timedelta(weeks=n) for n in range(WEEKS, -1, -1))]
+    base = [c for w, c in series[:-1]]
+    if None in base:
+        return series[-1][1], None, None, None, series
+    b = sorted(base)
+    return series[-1][1], median(b), b[TRIM], b[-1 - TRIM], series
+
+
 def fmt(r):
     loc, status, cur, med, lo, hi, dist = r
     return f"{loc}: {status} count={cur} median={med} range={lo}..{hi} distance={dist}"
@@ -119,3 +148,8 @@ for account, as_of in ((15, date(2026, 7, 27)), (6, date(2026, 4, 20)), (1, date
     print(f"account {account} as_of {as_of} totals (count, median, low, high):", account_totals(account, as_of))
 print("account 6 Site G week 2026-04-13 by type:",
       {et: by_type[6, "Site G", date(2026, 4, 13), et] for et in TYPES})
+for account, location, as_of in ((6, "Site G", date(2026, 4, 20)), (15, "Site C", date(2026, 7, 27))):
+    print(f"series account {account} {location} as_of {as_of}:", [(str(w), c) for w, c in location_series(account, location, as_of)])
+for account, as_of in ((6, date(2026, 4, 20)), (15, date(2026, 7, 27)), (1, date(2026, 3, 2)), (20, date(2026, 7, 27))):
+    c, m, lo, hi, series = account_total(account, as_of)
+    print(f"account_total {account} as_of {as_of}: count={c} median={m} range={lo}..{hi} series={[x for _, x in series]}")
