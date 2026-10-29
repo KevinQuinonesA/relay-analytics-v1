@@ -9,11 +9,21 @@ function parseDate(value: string): Date {
   return new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1));
 }
 
-export function formatRange(start: string, end: string): string {
+function range(start: string, end: string, separator: string): string {
   const s = parseDate(start);
   const e = parseDate(end);
   const sameMonth = s.getUTCMonth() === e.getUTCMonth();
-  return `${dayMonth.format(s)} – ${sameMonth ? day.format(e) : dayMonth.format(e)}`;
+  return `${dayMonth.format(s)}${separator}${sameMonth ? day.format(e) : dayMonth.format(e)}`;
+}
+
+// "Jul 20 – 26", for headings
+export function formatRange(start: string, end: string): string {
+  return range(start, end, " – ");
+}
+
+// "Jul 20–26" or "Jun 29–Jul 5", for compact week labels
+export function formatWeek(start: string, end: string): string {
+  return range(start, end, "–");
 }
 
 export function plural(n: number, word: string): string {

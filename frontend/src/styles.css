@@ -9,6 +9,10 @@
   --flag-bg: #fef3c7;
   --flag-border: #b45309; /* >= 4.5:1 */
   --error: #b91c1c;
+  /* sparkline: past weeks in muted ink, this week in the accent (validated with the dataviz palette check) */
+  --spark-line: #57534e;
+  --spark-current: #1d4ed8;
+  --spark-band-opacity: 0.14;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -26,6 +30,9 @@
     --flag-bg: #422006;
     --flag-border: #f59e0b;
     --error: #fca5a5;
+    --spark-line: #8f8780;
+    --spark-current: #3b82f6;
+    --spark-band-opacity: 0.26;
   }
 }
 
@@ -116,8 +123,9 @@ button:disabled {
 
 .location {
   display: grid;
-  grid-template-columns: 11rem 1fr auto;
-  grid-template-areas: "status name count" "status detail detail" "status types types";
+  /* fixed sparkline and count columns so sparklines line up across rows */
+  grid-template-columns: 11rem 1fr 120px 5.5rem;
+  grid-template-areas: "status name spark count" "status detail spark ." "status types spark .";
   gap: 0.15rem 1rem;
   align-items: baseline;
   padding: 0.6rem 0.9rem;
@@ -153,6 +161,7 @@ button:disabled {
 
 .count {
   grid-area: count;
+  justify-self: end;
   font-variant-numeric: tabular-nums;
 }
 
@@ -177,9 +186,67 @@ button:disabled {
   margin: 0.5rem 0 0;
 }
 
+.account-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+}
+
+.sparkline {
+  grid-area: spark;
+  align-self: center;
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.spark-band {
+  fill: var(--spark-line);
+  fill-opacity: var(--spark-band-opacity);
+}
+
+.spark-line {
+  fill: none;
+  stroke: var(--spark-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.spark-hover {
+  fill: var(--spark-line);
+}
+
+.spark-current {
+  fill: var(--spark-current);
+}
+
+.spark-hit {
+  fill: transparent;
+}
+
+.spark-tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  z-index: 1;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 @media (max-width: 34rem) {
   .location {
     grid-template-columns: 1fr auto;
-    grid-template-areas: "status status" "name count" "detail detail" "types types";
+    grid-template-areas: "status status" "name count" "detail detail" "types types" "spark spark";
   }
 }
