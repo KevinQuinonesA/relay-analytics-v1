@@ -131,6 +131,22 @@ describe("weekly summary", () => {
     expect(slightly?.textContent).not.toMatch(/[▲▼]/);
   });
 
+  it("gives slightly-outside rows a lighter outline arrow and typical rows none", async () => {
+    mockApi({
+      "/api/accounts": { status: 200, body: ACCOUNTS },
+      [summaryUrl(15)]: { status: 200, body: { ...SUMMARY, locations: [
+        location({ location: "Site C", status: "above_typical", flagged: true }),
+        location({ location: "Site B", status: "slightly_above" }),
+        location({ location: "Site D", status: "slightly_below" }),
+        location({ location: "Site A", status: "typical" }),
+        location({ location: "Site F", status: "too_little_activity", distance: null }),
+      ] } },
+    });
+    openAt("?account=15");
+    const icons = (await locationRows()).map((row) => row.textContent?.match(/[▲▼△▽]/g)?.join("") ?? "");
+    expect(icons).toEqual(["▲", "△", "▽", "", ""]);
+  });
+
   it("explains locations that can't be assessed", async () => {
     openAt("?account=15");
     const rows = await locationRows();
