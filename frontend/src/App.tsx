@@ -1,6 +1,6 @@
 import { AccountTotals } from "./components/AccountTotals";
 import { Controls } from "./components/Controls";
-import { LocationList } from "./components/LocationList";
+import { AttentionLine, LocationList } from "./components/LocationList";
 import { formatRange, plural } from "./format";
 import { type FetchState, useAccounts, useSelection, useWeeklySummary } from "./hooks";
 import type { WeeklySummary } from "./api";
@@ -30,6 +30,7 @@ function SummaryView({ state }: { state: FetchState<WeeklySummary> }) {
             Week of {formatRange(s.week.start, s.week.end)} · compared with the previous{" "}
             {plural(s.baseline.weeks, "week")} ({formatRange(s.baseline.start, s.baseline.end)})
           </p>
+          <AttentionLine summary={s} />
           <AccountTotals summary={s} />
           <LocationList summary={s} />
         </section>

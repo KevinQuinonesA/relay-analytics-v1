@@ -32,6 +32,22 @@ function Detail({ location, summary }: { location: LocationWeek; summary: Weekly
   }
 }
 
+const ASSESSED: Status[] = ["above_typical", "below_typical", "slightly_above", "slightly_below", "typical"];
+
+// Shown only when nothing is flagged, so the admin doesn't have to scan the list to find out.
+export function AttentionLine({ summary }: { summary: WeeklySummary }) {
+  const { locations } = summary;
+  if (locations.length === 0 || locations.some((l) => l.flagged)) return null;
+  const anyAssessed = locations.some((l) => ASSESSED.includes(l.status));
+  return (
+    <p role="status" className="attention">
+      {anyAssessed
+        ? "No locations need attention this week."
+        : "Not enough activity to assess any location this week."}
+    </p>
+  );
+}
+
 export function LocationList({ summary }: { summary: WeeklySummary }) {
   if (summary.locations.length === 0) {
     return <p className="empty">No activity recorded for this account yet.</p>;

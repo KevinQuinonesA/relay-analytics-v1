@@ -36,6 +36,7 @@ export function Controls({ accounts, selection, resolvedAsOf, onChange }: Props)
         As of
         <input
           type="date"
+          aria-describedby="as-of-hint"
           value={selection.asOf ?? resolvedAsOf ?? ""}
           onChange={(e) => onChange({ asOf: e.target.value || null })}
         />
@@ -43,6 +44,9 @@ export function Controls({ accounts, selection, resolvedAsOf, onChange }: Props)
       <button type="button" disabled={selection.asOf === null} onClick={() => onChange({ asOf: null })}>
         Latest data
       </button>
+      <p id="as-of-hint" className="hint">
+        Shows the last complete week (Mon–Sun) before this date.
+      </p>
     </div>
   );
 }
