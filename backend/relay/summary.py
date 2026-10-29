@@ -11,6 +11,14 @@ EVENT_TYPES = ("call_received", "lead_created", "appointment_set")
 
 
 @dataclass(frozen=True)
+class SeriesPoint:
+    """One week of a sparkline series. count and by_event_type are None before history starts."""
+    week_start: date
+    count: int | None
+    by_event_type: dict | None  # context only; the status stays on the total
+
+
+@dataclass(frozen=True)
 class TypeTotals:
     """Account-wide count for one event type, with its baseline median and typical range (context only)."""
     count: int
@@ -27,14 +35,14 @@ class AccountTotal:
     median: Fraction | None
     typical_low: int | None
     typical_high: int | None
-    weeks: list  # (week start, count or None before history), oldest first; the last one is this week
+    weeks: list  # SeriesPoint, oldest first; the last one is this week
 
 
 @dataclass(frozen=True)
 class LocationSummary:
     assessment: Assessment
     by_event_type: dict
-    weeks: list  # (week start, count or None before history), oldest first; the last one is this week
+    weeks: list  # SeriesPoint, oldest first; the last one is this week
 
 
 @dataclass(frozen=True)
@@ -92,16 +100,22 @@ def weekly_summary(conn, account_id, as_of=None, limits=Thresholds()):
 
 
 def _series(week_counts, window):
-    """Totals per week over the window; None for weeks the counts don't cover (before history)."""
-    by_week = {w.week_start: w.total for w in week_counts}
-    return [(w, by_week.get(w)) for w in window]
+    """Each week of the window with its total and per-type counts; None before history."""
+    by_week = {w.week_start: w for w in week_counts}
+    points = []
+    for start in window:
+        wc = by_week.get(start)
+        points.append(SeriesPoint(start, None, None) if wc is None else
+                      SeriesPoint(start, wc.total, {et: getattr(wc, et) for et in EVENT_TYPES}))
+    return points
 
 
 def _account_total(aw, window, limits):
     *baseline, current = aw.weeks if aw else [None]
     count = current.total if current else 0
     a = assess("account", count, [w.total for w in baseline], limits)
-    weeks = _series(aw.weeks, window) if aw else [(w, None) for w in window[:-1]] + [(window[-1], 0)]
+    weeks = (_series(aw.weeks, window) if aw else
+             [SeriesPoint(w, None, None) for w in window[:-1]] + [SeriesPoint(window[-1], 0, dict.fromkeys(EVENT_TYPES, 0))])
     return AccountTotal(count, a.median, a.typical_low, a.typical_high, weeks)
 
 

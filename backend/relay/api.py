@@ -62,6 +62,13 @@ class EventTypeCounts(BaseModel):
     appointment_set: int
 
 
+class WeekPoint(BaseModel):
+    start: date
+    end: date
+    count: int | None  # None before the location's (or account's) history starts
+    by_event_type: EventTypeCounts | None  # context only; adds up to count
+
+
 class TypeTotalsOut(BaseModel):
     count: int
     median: float | None
@@ -69,10 +76,6 @@ class TypeTotalsOut(BaseModel):
     typical_high: int | None
 
 
-class WeekPoint(BaseModel):
-    start: date
-    end: date
-    count: int | None  # None before the location's (or account's) history starts
 
 
 class AccountTotalOut(TypeTotalsOut):
@@ -167,7 +170,15 @@ def _summary_out(s):
 
 
 def _week_points(weeks):
-    return [WeekPoint(start=w, end=w + timedelta(days=6), count=c) for w, c in weeks]
+    return [
+        WeekPoint(
+            start=p.week_start,
+            end=p.week_start + timedelta(days=6),
+            count=p.count,
+            by_event_type=None if p.by_event_type is None else EventTypeCounts(**p.by_event_type),
+        )
+        for p in weeks
+    ]
 
 
 def _float(value):
