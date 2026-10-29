@@ -25,6 +25,7 @@ Requires Docker.
 ```bash
 docker compose up --build   # Postgres, migrations, seed (loaded once), API, UI
 make test                   # backend tests against a throwaway database
+make test-frontend          # frontend tests (Vitest + Testing Library)
 ```
 
 Then open <http://localhost:5173>. The selected account and as-of date are in the URL (`/?account=15&as_of=2026-04-20`), so a reload or a shared link keeps them.
@@ -46,6 +47,8 @@ API: `GET /api/accounts` and `GET /api/accounts/{id}/weekly-summary?as_of=YYYY-M
 Work in progress; see the implementation order in PLAN.md section 8.
 
 ## Deviations from PLAN.md and known limitations
+
+- **Account totals (not defined in PLAN.md).** The header's per-type totals are the sums of the location numbers. This week's count is the sum of the locations' counts, so it always adds up to the rows. The baseline sums each location's weeks from its own history start, beginning at the account's earliest location history. Median and typical range use the same rule and thresholds as locations. Totals are context only and never flagged.
 
 - **Default as-of uses the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally. The seed isn't affected: its last event is Monday 2026-07-27 22:20 UTC. In production the default should be today's date.
 
