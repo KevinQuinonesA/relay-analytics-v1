@@ -76,7 +76,7 @@ Notable choices inside it:
 - **Raw SQL for the aggregation, Alembic's schema operations for the schema.** The weekly aggregation (removing duplicates, local-time conversion, `generate_series` to fill empty weeks) is one readable query with bound parameters in `relay/weekly.py`. An ORM would hide the part that most needs to be visible. The schema, indexes and the duplicate-free view `activity_events_dedup` are Alembic migrations.
 - **SQL buckets the data; pure Python applies the rule.** `relay/normality.py` has no database access and uses exact `Fraction` arithmetic, so a distance of exactly 0.3 is flagged.
 - **The URL is the only UI state.** Reload, share and back/forward all work, and there's no second copy of the state to drift. **The frontend renders and never ranks:** the API returns locations already ordered, with an explicit `flagged` field.
-- **Sparklines are plain SVG, no chart library.** Each is 9 points, one shaded band (the typical range) and one line, plus a hover tooltip. A library would be a large dependency for that, and plain SVG reuses the WCAG-checked colour tokens and is testable with Testing Library. Each chart is scaled to its own data and band. Week series come from the API, so the frontend still computes nothing. (PLAN.md §6 said no charts in v1; these were added after the UI review.)
+- **Sparklines are plain SVG, no chart library.** Each is 9 points, one shaded band (the typical range) and one line, plus a hover tooltip with the week's total and its per-type breakdown. A library would be a large dependency for that, and plain SVG reuses the WCAG-checked colour tokens and is testable with Testing Library. Each chart is scaled to its own data and band. Week series come from the API, so the frontend still computes nothing. (PLAN.md §6 said no charts in v1; these were added after the UI review.)
 
 ## How the numbers were verified
 
@@ -89,6 +89,7 @@ Notable choices inside it:
 
 - **Missed-call rate:** time went to tests instead. It also needs a minimum number of calls, and per location probably a 4-week window, since a location gets about 4 calls a week.
 - **Alerting, notifications, ML/forecasting:** out of scope per product. **An LLM in the feature:** the answer is already a deterministic line that admins need to trust; see [PLAN.md §10](PLAN.md).
+- **A per-type view** (a selector to chart calls, leads or appointments on their own) would give admins more context. But a typical location sees about 4 calls, 1–2 leads and 1 appointment a week, so per-type sparklines would look mostly empty and wouldn't mean much. For now each week's per-type breakdown is in the sparkline tooltip, as context. The status stays on the location total.
 - **Account-level flags, configurable weeks or a rolling window, editable thresholds:** each needs a product decision first. **Auth and tenant isolation, peer benchmarks, fuzzy duplicate matching:** not needed to answer the ticket.
 
 ## With another day
