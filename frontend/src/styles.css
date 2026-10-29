@@ -140,14 +140,13 @@ button:disabled {
   border-left-color: var(--flag-border);
 }
 
+/* status centred in its column, horizontally and vertically, on every row */
 .status {
   grid-area: status;
-  font-weight: 600;
-}
-
-/* rows without a direction icon: status centred against the whole row */
-.location.no-icon .status {
   align-self: center;
+  justify-self: center;
+  text-align: center;
+  font-weight: 600;
 }
 
 .location:not(.flagged) .status {

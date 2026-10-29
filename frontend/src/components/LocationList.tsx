@@ -60,7 +60,7 @@ export function LocationList({ summary }: { summary: WeeklySummary }) {
   return (
     <ul className="locations" aria-label="Locations, most unusual first">
       {summary.locations.map((location) => (
-        <li key={location.location} className={`location status-${location.status}${location.flagged ? " flagged" : ""}${STATUS_ICON[location.status] ? "" : " no-icon"}`}>
+        <li key={location.location} className={`location status-${location.status}${location.flagged ? " flagged" : ""}`}>
           <span className="status">
             {STATUS_ICON[location.status] && (
               <span className="icon" aria-hidden="true">
