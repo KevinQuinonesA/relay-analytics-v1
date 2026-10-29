@@ -1,5 +1,5 @@
 """HTTP layer: validation and serialization only; the logic is in relay.summary."""
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from typing import Annotated
 
@@ -69,6 +69,16 @@ class TypeTotalsOut(BaseModel):
     typical_high: int | None
 
 
+class WeekPoint(BaseModel):
+    start: date
+    end: date
+    count: int | None  # None before the location's (or account's) history starts
+
+
+class AccountTotalOut(TypeTotalsOut):
+    weeks: list[WeekPoint]  # baseline weeks then this week, oldest first
+
+
 class AccountTotalsOut(BaseModel):
     call_received: TypeTotalsOut
     lead_created: TypeTotalsOut
@@ -85,6 +95,7 @@ class LocationOut(BaseModel):
     typical_high: int | None
     distance: float | None  # events beyond the typical range / median
     by_event_type: EventTypeCounts  # context only, not flagged
+    weeks: list[WeekPoint]  # baseline weeks then this week, oldest first
 
 
 class WeeklySummaryOut(BaseModel):
@@ -94,6 +105,7 @@ class WeeklySummaryOut(BaseModel):
     baseline: BaselineOut
     thresholds: ThresholdsOut
     account_totals: AccountTotalsOut  # context only, not flagged
+    account_total: AccountTotalOut  # all event types; context only, not flagged
     locations: list[LocationOut]  # ranked; the client must not re-sort
 
 
@@ -129,6 +141,13 @@ def _summary_out(s):
             )
             for et, t in s.account_totals.items()
         }),
+        account_total=AccountTotalOut(
+            count=s.account_total.count,
+            median=_float(s.account_total.median),
+            typical_low=s.account_total.typical_low,
+            typical_high=s.account_total.typical_high,
+            weeks=_week_points(s.account_total.weeks),
+        ),
         locations=[
             LocationOut(
                 location=loc.assessment.location,
@@ -140,10 +159,15 @@ def _summary_out(s):
                 typical_high=loc.assessment.typical_high,
                 distance=_float(loc.assessment.distance),
                 by_event_type=EventTypeCounts(**loc.by_event_type),
+                weeks=_week_points(loc.weeks),
             )
             for loc in s.locations
         ],
     )
+
+
+def _week_points(weeks):
+    return [WeekPoint(start=w, end=w + timedelta(days=6), count=c) for w, c in weeks]
 
 
 def _float(value):
