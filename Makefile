@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed test psql
+.PHONY: up down migrate seed test test-frontend psql
 
 up:
 	docker compose up --build
@@ -14,6 +14,9 @@ seed:
 
 test:
 	docker compose run --rm backend pytest $(ARGS)
+
+test-frontend:
+	docker compose run --rm --build frontend-test
 
 psql:
 	docker compose exec db psql -U relay -d relay

@@ -21,6 +21,15 @@ export interface Period {
   end: string;
 }
 
+export type EventType = "call_received" | "lead_created" | "appointment_set";
+
+export interface TypeTotals {
+  count: number;
+  median: number | null;
+  typical_low: number | null;
+  typical_high: number | null;
+}
+
 export interface LocationWeek {
   location: string;
   status: Status;
@@ -30,6 +39,7 @@ export interface LocationWeek {
   typical_low: number | null;
   typical_high: number | null;
   distance: number | null;
+  by_event_type: Record<EventType, number>; // context only
 }
 
 export interface WeeklySummary {
@@ -43,6 +53,7 @@ export interface WeeklySummary {
     min_baseline_median: number;
     min_flag_distance: number;
   };
+  account_totals: Record<EventType, TypeTotals>; // context only, not flagged
   locations: LocationWeek[]; // already ranked by the API
 }
 

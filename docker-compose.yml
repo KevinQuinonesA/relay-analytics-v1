@@ -45,5 +45,15 @@ services:
       backend:
         condition: service_healthy
 
+  frontend-test:
+    profiles: ["test"]
+    build:
+      context: ./frontend
+      target: deps
+    command: npm test
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
 volumes:
   db-data:
