@@ -41,7 +41,13 @@ def test_weekly_summary_defaults_to_latest_data(client):
         ("Site B", "below_typical", True),
         ("Site A", "typical", False),
     ]
+    assert body["account_totals"] == {
+        "call_received": {"count": 9, "median": 12, "typical_low": 11, "typical_high": 19},
+        "lead_created": {"count": 6, "median": 3.5, "typical_low": 2, "typical_high": 7},
+        "appointment_set": {"count": 5, "median": 3.5, "typical_low": 1, "typical_high": 4},
+    }
     site_b = body["locations"][1]
+    assert site_b["by_event_type"] == {"call_received": 0, "lead_created": 1, "appointment_set": 1}
     assert (site_b["count"], site_b["median"], site_b["typical_low"], site_b["typical_high"]) == (2, 5.5, 4, 12)
     assert site_b["distance"] == pytest.approx(4 / 11)
 

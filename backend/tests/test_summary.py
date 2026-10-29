@@ -77,3 +77,48 @@ def test_unknown_account_is_none(conn, three_sites):
 def test_account_without_events_has_no_locations(conn, three_sites, rows):
     rows.account(2, "America/Chicago")
     assert weekly_summary(conn, 2, as_of=date(2026, 7, 27)).locations == []
+
+
+def totals(summary):
+    return {et: (t.count, t.median, t.typical_low, t.typical_high) for et, t in summary.account_totals.items()}
+
+
+def test_account_totals_sum_the_locations(conn, three_sites):
+    # calls per baseline week = Site A + Site B (1/week): 11 9 12 11 10 13 11 11
+    # sorted 9 10 11 11 11 11 12 13 -> median 11, middle 6 = 10..12; this week 6 (A) + 0 (B) + 2 (C) = 8
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert totals(s) == {
+        "call_received": (8, 11, 10, 12),
+        "lead_created": (0, 0, 0, 0),
+        "appointment_set": (0, 0, 0, 0),
+    }
+
+
+def test_account_baseline_counts_each_location_from_its_own_history_start(conn, rows):
+    rows.account(NY, "America/New_York")
+    for monday in BASELINE_MONDAYS:
+        rows.event(NY, "Site A", f"{monday} 16:00:00", n=10)
+    rows.event(NY, "Site B", "2026-06-24 16:00:00", n=5)  # Wed of week 06-22: partial, before B's history (06-29)
+    for monday in BASELINE_MONDAYS[-3:]:                  # 06-29, 07-06, 07-13
+        rows.event(NY, "Site B", f"{monday} 16:00:00", n=2)
+    # weeks: 10 10 10 10 10 (06-22 excludes B's partial week) 12 12 12 -> median 10, middle 6 = 10..12
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert totals(s)["call_received"] == (0, 10, 10, 12)
+
+
+def test_account_totals_without_enough_history(conn, rows):
+    rows.account(NY, "America/New_York")
+    rows.event(NY, "Site A", "2026-07-21 16:00:00", n=3)
+    rows.event(NY, "Site A", "2026-07-22 16:00:00", event_type="lead_created")
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert totals(s) == {
+        "call_received": (3, None, None, None),
+        "lead_created": (1, None, None, None),
+        "appointment_set": (0, None, None, None),
+    }
+
+
+def test_account_without_events_has_zero_totals_and_no_baseline(conn, rows):
+    rows.account(NY, "America/New_York")
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert set(totals(s).values()) == {(0, None, None, None)}

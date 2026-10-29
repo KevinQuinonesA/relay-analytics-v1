@@ -143,3 +143,35 @@ def test_account_6_latest_week_spike_does_not_widen_ranges(seeded_conn):
 
 def test_account_without_events(seeded_conn):
     assert weekly_summary(seeded_conn, 20).locations == []
+
+
+def account_totals(summary):
+    return {et: (t.count, t.median, t.typical_low, t.typical_high) for et, t in summary.account_totals.items()}
+
+
+@pytest.mark.parametrize(
+    "account, as_of, expected",
+    [
+        (15, date(2026, 7, 27), {"call_received": (9, 12, 11, 19), "lead_created": (6, F(7, 2), 2, 7),
+                                 "appointment_set": (5, F(7, 2), 1, 4)}),
+        # the whole account was low in the Site G outage week: 33 calls vs typical 43-54
+        (6, date(2026, 4, 20), {"call_received": (33, F(99, 2), 43, 54), "lead_created": (16, F(33, 2), 14, 19),
+                                "appointment_set": (6, 12, 11, 15)}),
+        (1, date(2026, 3, 2), {"call_received": (30, None, None, None), "lead_created": (12, None, None, None),
+                               "appointment_set": (8, None, None, None)}),
+    ],
+)
+def test_account_totals(seeded_conn, account, as_of, expected):
+    assert account_totals(weekly_summary(seeded_conn, account, as_of=as_of)) == expected
+
+
+def test_account_totals_equal_the_sum_of_location_counts(seeded_conn):
+    for account in ACCOUNTS:
+        s = weekly_summary(seeded_conn, account)
+        assert sum(t.count for t in s.account_totals.values()) == sum(l.assessment.count for l in s.locations)
+
+
+def test_site_g_outage_by_event_type(seeded_conn):
+    site_g = next(l for l in weekly_summary(seeded_conn, 6, as_of=date(2026, 4, 20)).locations
+                  if l.assessment.location == "Site G")
+    assert site_g.by_event_type == {"call_received": 0, "lead_created": 0, "appointment_set": 0}
