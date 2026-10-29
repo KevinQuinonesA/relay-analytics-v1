@@ -132,3 +132,44 @@ def test_account_without_events_has_zero_totals_and_no_baseline(conn, rows):
     rows.account(NY, "America/New_York")
     s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
     assert set(totals(s).values()) == {(0, None, None, None)}
+
+
+# --- 9-week series for the sparklines ----------------------------------------------------
+
+WINDOW = BASELINE_MONDAYS + [date(2026, 7, 20)]  # 05-25 .. 07-13, then this week
+
+
+def test_each_location_has_its_nine_week_series(conn, three_sites):
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    series = {l.assessment.location: l.weeks for l in s.locations}
+    assert series["Site A"] == list(zip(WINDOW, [10, 8, 11, 10, 9, 12, 10, 10, 6]))
+    assert series["Site B"] == list(zip(WINDOW, [1] * 8 + [0]))
+    # Site C was first seen this week: no history before it
+    assert series["Site C"] == list(zip(WINDOW, [None] * 8 + [2]))
+
+
+def account_total(summary):
+    t = summary.account_total
+    return (t.count, t.median, t.typical_low, t.typical_high, [c for _, c in t.weeks])
+
+
+def test_account_total_covers_every_event_with_the_same_rule(conn, three_sites):
+    # per week Site A + Site B: 11 9 12 11 10 13 11 11; this week 6 + 0 + 2 = 8
+    # sorted 9 10 11 11 11 11 12 13 -> median 11, middle 6 = 10..12
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert account_total(s) == (8, 11, 10, 12, [11, 9, 12, 11, 10, 13, 11, 11, 8])
+    assert [w for w, _ in s.account_total.weeks] == WINDOW
+
+
+def test_account_total_without_enough_history(conn, rows):
+    rows.account(NY, "America/New_York")
+    rows.event(NY, "Site A", "2026-07-21 16:00:00", n=3)
+    rows.event(NY, "Site A", "2026-07-22 16:00:00", event_type="lead_created")
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert account_total(s) == (4, None, None, None, [None] * 8 + [4])
+
+
+def test_account_total_for_an_account_without_events(conn, rows):
+    rows.account(NY, "America/New_York")
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert account_total(s) == (0, None, None, None, [None] * 8 + [0])

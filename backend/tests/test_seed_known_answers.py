@@ -178,3 +178,34 @@ def test_site_g_outage_by_event_type(seeded_conn):
     site_g = next(l for l in weekly_summary(seeded_conn, 6, as_of=date(2026, 4, 20)).locations
                   if l.assessment.location == "Site G")
     assert site_g.by_event_type == {"call_received": 0, "lead_created": 0, "appointment_set": 0}
+
+
+# --- sparkline series (analysis/reference.py: location_series, account_total) ---------------
+
+def series(summary, location):
+    return [(str(w), c) for w, c in next(l for l in summary.locations if l.assessment.location == location).weeks]
+
+
+def test_site_g_outage_series(seeded_conn):
+    assert series(weekly_summary(seeded_conn, 6, as_of=date(2026, 4, 20)), "Site G") == [
+        ("2026-02-16", 6), ("2026-02-23", 7), ("2026-03-02", 2), ("2026-03-09", 3), ("2026-03-16", 5),
+        ("2026-03-23", 7), ("2026-03-30", 8), ("2026-04-06", 2), ("2026-04-13", 0),
+    ]
+
+
+def test_account_15_site_c_series(seeded_conn):
+    assert [c for _, c in series(weekly_summary(seeded_conn, 15), "Site C")] == [4, 5, 10, 4, 6, 6, 7, 6, 12]
+
+
+@pytest.mark.parametrize(
+    "account, as_of, expected",
+    [
+        (6, date(2026, 4, 20), (55, F(157, 2), 71, 84, [90, 56, 76, 84, 81, 71, 82, 76, 55])),
+        (15, date(2026, 7, 27), (20, 19, 15, 24, [15, 33, 23, 14, 24, 16, 19, 19, 20])),
+        (1, date(2026, 3, 2), (50, None, None, None, [None] * 5 + [43, 51, 40, 50])),
+        (20, date(2026, 7, 27), (0, None, None, None, [None] * 8 + [0])),
+    ],
+)
+def test_account_total(seeded_conn, account, as_of, expected):
+    t = weekly_summary(seeded_conn, account, as_of=as_of).account_total
+    assert (t.count, t.median, t.typical_low, t.typical_high, [c for _, c in t.weeks]) == expected
