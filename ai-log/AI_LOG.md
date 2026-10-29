@@ -8,6 +8,7 @@ This folder holds the full Claude Code session that produced this repo (`session
 - The session follows the implementation order in [PLAN.md §8](../PLAN.md). The phase table below maps each part to its commits, so you can jump between the log and `git log`.
 - Data-heavy answers end with a **Verify** table: each number, the query or script that produced it, and its raw output. Corrections found that way are listed under "Corrections" at the end of those answers.
 - The fastest way in is the **corrections and redirections index** below. Search the export for a quote to land on that moment.
+- Local paths in the export are shown as `<repo>` (the repository root) and `<scratchpad>` (Claude Code's temporary working folder).
 
 ## Sittings
 
@@ -64,6 +65,6 @@ Quotes are verbatim, typos included.
 
 i used Orca as the agent IDE, it helped me with the file management and the usage of Claude in the terminal integrated in the IDE.   
   
-Claude Code (Claude Opus 5.5) as the coding agent: data exploration, [PLAN.md](http://PLAN.md) and README drafts, all code and tests. I reviewed every phase, made the product calls and wrote the [CLAUDE.md](http://CLAUDE.md) stack conventions, the LLM section direction and this reflection. i used the Claude skill for code review. Generally I created a customised one but since this is a small project, I didn't.   
+Claude Code (Claude Opus 5.5) as the coding agent: data exploration, [PLAN.md](../PLAN.md) and README drafts, all code and tests. I reviewed every phase, made the product calls and wrote the [CLAUDE.md](../CLAUDE.md) stack conventions, the LLM section direction and this reflection. i used the Claude skill for code review. Generally I created a customised one but since this is a small project, I didn't.   
   
 Playwright for the README screenshots.
