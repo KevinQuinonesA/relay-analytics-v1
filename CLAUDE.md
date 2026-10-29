@@ -9,6 +9,7 @@ make up                     # docker compose up --build: db, migrations, seed (l
 make test                   # backend tests in the container, against throwaway databases
 make test ARGS="-q tests/test_weekly.py"
 make test-frontend          # Vitest + Testing Library in a node container
+make screenshots            # README screenshots via Playwright (needs a running stack)
 make migrate | make seed | make psql | make down
 python3 -I analysis/reference.py data/schema.sql data/seed.sql   # independent reference answers
 ```
