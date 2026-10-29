@@ -71,5 +71,6 @@ def test_query_indexes_exist(migrated_db_url, engine_for):
 
 def test_downgrade_to_base_removes_everything(migrated_db_url, engine_for):
     downgrade(migrated_db_url, "base")
-    tables = set(inspect(engine_for(migrated_db_url)).get_table_names())
-    assert tables == {"alembic_version"}
+    inspector = inspect(engine_for(migrated_db_url))
+    assert set(inspector.get_table_names()) == {"alembic_version"}
+    assert inspector.get_view_names() == []
