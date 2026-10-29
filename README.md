@@ -40,6 +40,10 @@ make test                   # backend tests against a throwaway database
 
 Work in progress; see the implementation order in PLAN.md section 8.
 
+## Deviations from PLAN.md and known limitations
+
+- **Default as-of uses the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally. The seed isn't affected: its last event is Monday 2026-07-27 22:20 UTC. In production the default should be today's date.
+
 ## Next steps
 
 - Missed-call rate per account, with a minimum number of calls (PLAN.md section 9).
