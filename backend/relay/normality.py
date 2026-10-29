@@ -59,10 +59,18 @@ def _median(sorted_counts):
     return Fraction(sorted_counts[mid - 1] + sorted_counts[mid], 2)
 
 
+def _validate(limits):
+    if limits.baseline_weeks < 1 or limits.range_trim < 0 or 2 * limits.range_trim >= limits.baseline_weeks:
+        raise ValueError(f"range_trim {limits.range_trim} must leave weeks of {limits.baseline_weeks}")
+    if limits.min_baseline_median <= 0:
+        raise ValueError("min_baseline_median must be positive (the median divides the distance)")
+    if limits.min_flag_distance < 0:
+        raise ValueError("min_flag_distance must not be negative")
+
+
 def assess(location, count, baseline, limits=Thresholds()):
     """Assess this week's `count` against `baseline`: weekly counts before this week, oldest first, zero-filled."""
-    if limits.baseline_weeks < 1 or 2 * limits.range_trim >= limits.baseline_weeks:
-        raise ValueError(f"range_trim {limits.range_trim} leaves no weeks of {limits.baseline_weeks}")
+    _validate(limits)
     if len(baseline) < limits.baseline_weeks:
         return Assessment(location, count, Status.INSUFFICIENT_HISTORY)
 
