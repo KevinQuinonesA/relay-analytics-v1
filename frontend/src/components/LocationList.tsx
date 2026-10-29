@@ -45,7 +45,7 @@ export function AttentionLine({ summary }: { summary: WeeklySummary }) {
   if (locations.length === 0 || locations.some((l) => l.flagged)) return null;
   const anyAssessed = locations.some((l) => ASSESSED.includes(l.status));
   return (
-    <p role="status" className="attention">
+    <p role="status" className="attention pill">
       {anyAssessed
         ? "No locations need attention this week."
         : "Not enough activity to assess any location this week."}
