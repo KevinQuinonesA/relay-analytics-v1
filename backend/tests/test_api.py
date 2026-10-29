@@ -77,6 +77,11 @@ def test_unknown_account_is_404(client):
     assert client.get("/api/accounts/999/weekly-summary").status_code == 404
 
 
-@pytest.mark.parametrize("as_of", ["2026-13-01", "yesterday", "27-07-2026"])
+@pytest.mark.parametrize("as_of", ["2026-13-01", "yesterday", "27-07-2026", "0001-01-01", "0001-02-15", "1999-12-31", "2101-01-01"])
 def test_malformed_as_of_is_422(client, as_of):
     assert client.get("/api/accounts/15/weekly-summary", params={"as_of": as_of}).status_code == 422
+
+
+@pytest.mark.parametrize("as_of", ["2000-01-01", "2100-12-31"])
+def test_as_of_range_edges_are_accepted(client, as_of):
+    assert client.get("/api/accounts/15/weekly-summary", params={"as_of": as_of}).status_code == 200
