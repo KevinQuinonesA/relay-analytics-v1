@@ -26,15 +26,10 @@ I worked in several sittings. Gaps between timestamps in the log and in `git log
 | 5. Refinement               | Account totals, per-type counts, frontend tests                                                                                                     | `b6cfbdb` `2e83ae1` `cb5ec49` `b6f1fc6` `e53caac`           |
 | UI review                   | WCAG 2.2 contrast, the "no locations need attention" line, the as-of hint, product notes                                                            | `d34b74c` `052d442` `11bc3ca`                               |
 | 6. README and install check | README for reviewers; fresh-clone install run that found two bugs; screenshots                                                                      | `e8831ce` `48169fd` `9644f92` `5617ef3`                     |
+| Code review fixes           | Fresh-context review of `backend/relay`: threshold validation, as-of range, account totals counting partial first weeks (reference updated first)   | `c7cfebd` `f5ebede` `3d893c4` `ca0b5e9` `2d4fe42` `07f5f38` `a13519d` `00cfb8f` |
 
 
 Commits titled "Add failing …" hold the tests committed before the code that makes them pass.
-
-## Redaction
-
-Mentions of my current employer's local setup (a container that held port 8000 early in the session, and its paths) are replaced with `[redacted: employer project]`. Nothing else in the export is changed.
-
-<!-- TODO before submitting: confirm the redaction has been applied to session-export.txt, then delete this comment. -->
 
 ## Where I corrected or redirected Claude
 
