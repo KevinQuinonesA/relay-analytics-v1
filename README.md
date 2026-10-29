@@ -76,6 +76,7 @@ Notable choices inside it:
 - **Raw SQL for the aggregation, Alembic's schema operations for the schema.** The weekly aggregation (removing duplicates, local-time conversion, `generate_series` to fill empty weeks) is one readable query with bound parameters in `relay/weekly.py`. An ORM would hide the part that most needs to be visible. The schema, indexes and the duplicate-free view `activity_events_dedup` are Alembic migrations.
 - **SQL buckets the data; pure Python applies the rule.** `relay/normality.py` has no database access and uses exact `Fraction` arithmetic, so a distance of exactly 0.3 is flagged.
 - **The URL is the only UI state.** Reload, share and back/forward all work, and there's no second copy of the state to drift. **The frontend renders and never ranks:** the API returns locations already ordered, with an explicit `flagged` field.
+- **Sparklines are plain SVG, no chart library.** Each is 9 points, one shaded band (the typical range) and one line, plus a hover tooltip. A library would be a large dependency for that, and plain SVG reuses the WCAG-checked colour tokens and is testable with Testing Library. Each chart is scaled to its own data and band. Week series come from the API, so the frontend still computes nothing. (PLAN.md §6 said no charts in v1; these were added after the UI review.)
 
 ## How the numbers were verified
 
@@ -95,13 +96,14 @@ Notable choices inside it:
 1. Tune `MIN_FLAG_DISTANCE` and `MIN_BASELINE_MEDIAN` with product, using the examples below and in "Try these".
 2. Add the missed-call rate per account, with a minimum number of calls.
 3. Make the default as-of the last week that has ended in every account's timezone, and show how fresh the data is (fixes the limitation below).
-4. Add a 9-week sparkline per location.
+4. Make sparkline values reachable from the keyboard (one tab stop per chart, arrow keys between weeks).
 5. Set up CI that runs `docker compose up` from scratch, both test suites, and one browser smoke test.
 
 ## Known limitations and open questions
 
 - **Account totals** (not defined in PLAN.md) are the account's own weekly counts per event type. Every event counts, including a new location's partial first week, so this week's total still equals the sum of the rows. They use the same median and range rule. They're context only and never flagged, even when well outside their range: Pacific Smiles appointments were 9 vs typical 4–6 in the week of Jul 13.
 - **The default as-of is the UTC date of the latest event (D2).** If data arrives up to a Sunday evening in a US timezone, the UTC date is already Monday, so the default picks a week that hasn't ended locally and can falsely flag it below typical. The seed isn't affected. Switching to today's date doesn't fix this if "today" is the UTC date: it has the same flaw. The default must pick the last week that has ended in every account's timezone (for example, using today's date in the westernmost zone).
+- **Sparkline tooltips are mouse-only.** Every week's count is in each chart's accessible label, so screen readers get all of it, but a sighted keyboard user can't see past weeks' counts. This week's count and the range are always visible as text.
 - **Questions for product:** see [PLAN.md §3](PLAN.md). Two more came up in review:
   - **The 0.3 threshold sits close to cases a person would call worrying.** Account 6 Site N, week of Apr 13: 1 event vs typical 3–8, distance 2/7 ≈ 0.29, so only "slightly below".
   - **Above and below typical share one highlight on purpose.** Whether more activity is good depends on the business.
