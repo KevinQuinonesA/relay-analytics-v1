@@ -137,6 +137,50 @@ describe("weekly summary", () => {
   });
 });
 
+describe("attention line", () => {
+  function withLocations(locations: LocationWeek[]) {
+    mockApi({
+      "/api/accounts": { status: 200, body: ACCOUNTS },
+      [summaryUrl(15)]: { status: 200, body: { ...SUMMARY, locations } },
+    });
+    openAt("?account=15");
+  }
+
+  it("says so at the top when no location is flagged", async () => {
+    withLocations([
+      location({ location: "Site A", status: "typical" }),
+      location({ location: "Site B", status: "slightly_above", distance: 0.1 }),
+      location({ location: "Site C", status: "too_little_activity", distance: null }),
+    ]);
+    expect((await screen.findByRole("status")).textContent).toBe("No locations need attention this week.");
+  });
+
+  it("doesn't claim all is well when no location could be assessed", async () => {
+    withLocations([
+      location({ location: "Site A", status: "too_little_activity", distance: null }),
+      location({ location: "Site B", status: "insufficient_history", median: null, distance: null }),
+    ]);
+    expect((await screen.findByRole("status")).textContent).toBe(
+      "Not enough activity to assess any location this week.",
+    );
+  });
+
+  it("shows no such line when something is flagged", async () => {
+    openAt("?account=15");
+    await locationRows();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("as-of control", () => {
+  it("explains which week the date selects", async () => {
+    openAt("?account=15");
+    const input = (await screen.findByLabelText("As of")) as HTMLInputElement;
+    const hint = screen.getByText("Shows the last complete week (Mon–Sun) before this date.");
+    expect(input.getAttribute("aria-describedby")).toBe(hint.id);
+  });
+});
+
 describe("URL state", () => {
   it("reads account and as-of from the URL", async () => {
     const fetchMock = mockApi({
