@@ -28,6 +28,12 @@ class LocationWeeks:
     weeks: list  # WeekCounts, oldest first; the last one is the target week
 
 
+@dataclass(frozen=True)
+class AccountWeeks:
+    history_start: date
+    weeks: list  # WeekCounts for the whole account, oldest first; the last one is the target week
+
+
 def target_week(as_of):
     """Monday of the last complete Mon-Sun week that ends before `as_of`."""
     return as_of - timedelta(days=as_of.weekday()) - timedelta(weeks=1)
@@ -94,6 +100,10 @@ def location_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WE
         lw = result.setdefault(location, LocationWeeks(location, history_start, []))
         lw.weeks.append(WeekCounts(week_start, *counts))
     return list(result.values())
+
+
+def account_weeks(conn, account_id, week, baseline_weeks=thresholds.BASELINE_WEEKS):
+    raise NotImplementedError
 
 
 def account_row(conn, account_id):

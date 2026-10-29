@@ -159,6 +159,9 @@ def account_totals(summary):
                                 "appointment_set": (6, 12, 11, 15)}),
         (1, date(2026, 3, 2), {"call_received": (30, None, None, None), "lead_created": (12, None, None, None),
                                "appointment_set": (8, None, None, None)}),
+        # baseline includes week 02-02, when some of the account's locations had a partial first week
+        (2, date(2026, 4, 6), {"call_received": (13, 18, 12, 24), "lead_created": (6, 5, 4, 6),
+                               "appointment_set": (2, 4, 2, 8)}),
     ],
 )
 def test_account_totals(seeded_conn, account, as_of, expected):

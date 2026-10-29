@@ -3,11 +3,11 @@
 Local times in comments are worked out by hand from the UTC values:
 EDT = UTC-4 (from 2026-03-08), EST = UTC-5 (before), PDT = UTC-7, Phoenix MST = UTC-7 all year.
 """
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
-from relay.weekly import location_weeks
+from relay.weekly import account_weeks, location_weeks
 
 NY, PHX, UTC_TZ, LA = 1, 2, 3, 4
 
@@ -183,3 +183,57 @@ def test_locations_are_returned_in_name_order(conn, rows):
     for name in ("Site C", "Site A", "Site B"):
         rows.event(NY, name, "2026-07-21 16:00:00")
     assert [lw.location for lw in location_weeks(conn, NY, date(2026, 7, 20))] == ["Site A", "Site B", "Site C"]
+
+
+# --- account-level weeks (account totals) ----------------------------------------------------
+
+def account_totals_by_week(conn, account_id, week):
+    aw = account_weeks(conn, account_id, week)
+    return None if aw is None else {w.week_start: w.total for w in aw.weeks}
+
+
+def test_account_weeks_count_a_new_locations_partial_first_week(conn, rows):
+    rows.event(NY, "Site A", "2026-05-26 16:00:00")        # Tue: account history from 06-01
+    rows.event(NY, "Site A", "2026-06-02 16:00:00", n=2)   # week 06-01
+    rows.event(NY, "Site B", "2026-06-17 16:00:00", n=3)   # Wed of week 06-15: B's partial first week, still counted
+    rows.event(NY, "Site B", "2026-07-21 16:00:00")        # target week
+    aw = account_weeks(conn, NY, date(2026, 7, 20))
+    assert aw.history_start == date(2026, 6, 1)
+    assert account_totals_by_week(conn, NY, date(2026, 7, 20)) == {
+        date(2026, 6, 1): 2, date(2026, 6, 8): 0, date(2026, 6, 15): 3, date(2026, 6, 22): 0,
+        date(2026, 6, 29): 0, date(2026, 7, 6): 0, date(2026, 7, 13): 0, date(2026, 7, 20): 1,
+    }
+
+
+def test_account_weeks_exclude_the_accounts_own_partial_first_week(conn, rows):
+    rows.event(NY, "Site A", "2026-05-27 16:00:00", n=4)   # Wed of week 05-25: the account's first week, partial
+    rows.event(NY, "Site A", "2026-07-21 16:00:00")
+    assert date(2026, 5, 25) not in account_totals_by_week(conn, NY, date(2026, 7, 20))
+
+
+def test_account_weeks_window_is_target_plus_eight_and_zero_filled(conn, rows):
+    rows.event(NY, "Site A", "2026-01-06 16:00:00")        # long history
+    rows.event(NY, "Site B", "2026-07-22 16:00:00", n=2)
+    totals = account_totals_by_week(conn, NY, date(2026, 7, 20))
+    assert list(totals) == [date(2026, 5, 25) + timedelta(weeks=n) for n in range(9)]
+    assert list(totals.values()) == [0] * 8 + [2]
+
+
+def test_account_first_seen_in_target_week_has_only_the_target_week(conn, rows):
+    rows.event(NY, "Site A", "2026-07-22 16:00:00", n=2)
+    aw = account_weeks(conn, NY, date(2026, 7, 20))
+    assert aw.history_start == date(2026, 7, 27)
+    assert [(w.week_start, w.total) for w in aw.weeks] == [(date(2026, 7, 20), 2)]
+
+
+def test_account_without_events_up_to_the_target_week_has_no_weeks(conn, rows):
+    rows.event(NY, "Site A", "2026-07-28 16:00:00")
+    assert account_weeks(conn, NY, date(2026, 7, 20)) is None
+
+
+def test_account_weeks_use_local_time_dedup_and_per_type_counts(conn, rows):
+    rows.event(NY, "Site A", "2026-07-27 03:30:00")        # Sun 07-26 23:30 EDT -> week 07-20
+    for _ in range(2):
+        rows.event(NY, "Site A", "2026-07-21 15:00:00", event_type="lead_created")  # exact duplicate -> once
+    [target] = account_weeks(conn, NY, date(2026, 7, 20)).weeks
+    assert (target.call_received, target.lead_created, target.appointment_set, target.total) == (1, 1, 0, 2)

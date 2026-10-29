@@ -94,16 +94,26 @@ def test_account_totals_sum_the_locations(conn, three_sites):
     }
 
 
-def test_account_baseline_counts_each_location_from_its_own_history_start(conn, rows):
+def test_account_baseline_counts_a_new_locations_partial_first_week(conn, rows):
     rows.account(NY, "America/New_York")
     for monday in BASELINE_MONDAYS:
         rows.event(NY, "Site A", f"{monday} 16:00:00", n=10)
-    rows.event(NY, "Site B", "2026-06-24 16:00:00", n=5)  # Wed of week 06-22: partial, before B's history (06-29)
+    rows.event(NY, "Site B", "2026-06-24 16:00:00", n=5)  # Wed of week 06-22: B's partial first week
     for monday in BASELINE_MONDAYS[-3:]:                  # 06-29, 07-06, 07-13
         rows.event(NY, "Site B", f"{monday} 16:00:00", n=2)
-    # weeks: 10 10 10 10 10 (06-22 excludes B's partial week) 12 12 12 -> median 10, middle 6 = 10..12
+    # weeks: 10 10 10 10 15 (06-22 includes B's 5) 12 12 12
+    # sorted 10 10 10 10 12 12 12 15 -> median 11, middle 6 = 10..12
     s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
-    assert totals(s)["call_received"] == (0, 10, 10, 12)
+    assert totals(s)["call_received"] == (0, 11, 10, 12)
+
+
+def test_account_baseline_starts_at_the_accounts_own_history_start(conn, rows):
+    rows.account(NY, "America/New_York")
+    rows.event(NY, "Site A", "2026-05-27 16:00:00", n=7)  # Wed of week 05-25: account history from 06-01
+    for monday in BASELINE_MONDAYS[1:]:                   # 06-01 .. 07-13: 7 full weeks
+        rows.event(NY, "Site A", f"{monday} 16:00:00", n=10)
+    s = weekly_summary(conn, NY, as_of=date(2026, 7, 27))
+    assert totals(s)["call_received"] == (0, None, None, None)
 
 
 def test_account_totals_without_enough_history(conn, rows):
